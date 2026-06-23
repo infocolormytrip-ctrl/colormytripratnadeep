@@ -1,0 +1,6 @@
+{
+  "name": "ColorMyTrip",
+  "description": "Travel with Soul. Book domestic tours, international tours, and trekking packages. Enquire online and customize your itinerary.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

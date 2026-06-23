@@ -1,0 +1,152 @@
+{
+  "entities": {
+    "enquiry": {
+      "title": "Travel Enquiry",
+      "description": "An enquiry submitted by a user for a travel package",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique auto-generated ID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the customer"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email of the customer"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the customer"
+        },
+        "travelDate": {
+          "type": "string",
+          "description": "Proposed date of travel"
+        },
+        "destination": {
+          "type": "string",
+          "description": "Name of the package or destination"
+        },
+        "travelers": {
+          "type": "integer",
+          "description": "Number of travelers"
+        },
+        "message": {
+          "type": "string",
+          "description": "Additional notes"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "responded", "closed"]
+        },
+        "packageId": {
+          "type": "string",
+          "description": "ID of the associated package"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name", "email", "phone", "destination", "travelers", "createdAt"]
+    },
+    "package": {
+      "title": "Travel Package",
+      "description": "A travel package offered by ColorMyTrip",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["domestic", "international", "trekking"]
+        },
+        "price": {
+          "type": "integer"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "itinerary": {
+          "type": "array"
+        },
+        "inclusions": {
+          "type": "array"
+        },
+        "exclusions": {
+          "type": "array"
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["title", "category", "price", "duration", "location", "image"]
+    },
+    "blog": {
+      "title": "Blog Post",
+      "description": "Travel advice and updates written by ColorMyTrip guide team",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["title", "excerpt", "content", "image", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/enquiries/{enquiryId}": {
+      "schema": "enquiry",
+      "description": "Customer bookings and enquiries"
+    },
+    "/packages/{packageId}": {
+      "schema": "package",
+      "description": "Domestic, International and Trekking tour packages list"
+    },
+    "/blogs/{blogId}": {
+      "schema": "blog",
+      "description": "Articles and travel guides list"
+    }
+  }
+}

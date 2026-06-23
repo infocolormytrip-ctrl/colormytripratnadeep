@@ -1,0 +1,19 @@
+<svg viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg" width="300" height="112.5">
+  <!-- ColorMy text in black -->
+  <text x="20" y="80" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="#000000">
+    ColorMy
+  </text>
+  
+  <!-- Trip text in red -->
+  <text x="248" y="80" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="#FF3333">
+    trip
+  </text>
+  
+  <!-- Red accent brush stroke above -->
+  <path d="M 280 25 Q 300 20 320 30 Q 340 40 360 35" stroke="#FF3333" stroke-width="18" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Subtitle -->
+  <text x="20" y="110" font-family="Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="3" fill="#333333">
+    TRAVEL WITH SOUL
+  </text>
+</svg>
