@@ -3,7 +3,12 @@ import { useData } from '../context/DataContext';
 import { Mail, Phone, MapPin, CheckCircle2, Clock, ShieldCheck, Sparkles, Send } from 'lucide-react';
 
 export default function Contact() {
-  const { addEnquiry } = useData();
+  const { addEnquiry, contactSettings, footerSettings } = useData();
+  const emailAddress = (contactSettings as any)?.email_address || (footerSettings as any)?.email_address;
+  const phoneNumber = (contactSettings as any)?.phone_number || (footerSettings as any)?.phone_number;
+
+
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -11,7 +16,7 @@ export default function Contact() {
   const [travelDate, setTravelDate] = useState('');
   const [travelers, setTravelers] = useState(2);
   const [message, setMessage] = useState('');
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -57,7 +62,7 @@ export default function Contact() {
   return (
     <div className="py-12 bg-slate-50/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Header Block */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl font-sans font-black text-slate-900 tracking-tight mb-4">
@@ -70,32 +75,35 @@ export default function Contact() {
 
         {/* 2 Column Layout - Contact Card Panel vs Form Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-stretch">
-          
+
           {/* Column 1: Info Panel (5 cols) */}
           <div className="lg:col-span-5 bg-gradient-to-br from-indigo-950 to-slate-900 rounded-3xl p-8 md:p-10 text-white flex flex-col justify-between shadow-xl relative overflow-hidden border border-slate-800">
             <div className="absolute top-0 right-0 w-44 h-44 bg-indigo-500/10 rounded-full blur-2xl -z-1" />
-            
+
             <div className="space-y-6">
               <div>
                 <span className="text-[11px] font-mono tracking-widest text-indigo-300 uppercase font-black">ColorMyTrip Secretariat</span>
                 <h3 className="text-2xl font-black font-sans mt-1">Travel with Soul</h3>
               </div>
-              
+
               <p className="text-slate-300 text-sm leading-relaxed font-normal">
                 Contact our head office coordinators. We will gladly help configure custom treks (Sandakphu, Kedarkantha) or cultural family routes in Kashmir or Bhutan.
               </p>
 
               {/* Direct Info Fields */}
               <div className="space-y-5 pt-4">
-                
+
                 <div className="flex gap-4">
                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 border border-white/5">
                     <Mail className="w-5 h-5 text-white" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Registered Email</p>
-                    <a href="mailto:Info.colormytrip@gmail.com" className="text-base font-bold text-white hover:underline block leading-tight mt-1 font-mono">
-                      Info.colormytrip@gmail.com
+                    <a
+                      href={`mailto:${emailAddress || 'Info.colormytrip@gmail.com'}`}
+                      className="text-base font-bold text-white hover:underline block leading-tight mt-1 font-mono"
+                    >
+                      {emailAddress || 'Info.colormytrip@gmail.com'}
                     </a>
                   </div>
                 </div>
@@ -106,8 +114,11 @@ export default function Contact() {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Call or WhatsApp Hotline</p>
-                    <a href="tel:+919832012345" className="text-base font-bold text-white hover:underline block leading-tight mt-1 font-mono">
-                      +91 98320 12345
+                    <a
+                      href={`tel:${phoneNumber || '+919832012345'}`}
+                      className="text-base font-bold text-white hover:underline block leading-tight mt-1 font-mono"
+                    >
+                      {phoneNumber || '+91 98320 12345'}
                     </a>
                   </div>
                 </div>
@@ -119,8 +130,8 @@ export default function Contact() {
                   <div>
                     <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Headquarters Address</p>
                     <p className="text-sm font-semibold text-white/95 leading-normal mt-1">
-                      Sevoke Road, Near PC Mittal Bus Stand,<br />
-                      Siliguri, West Bengal, Pin 734001, India
+                      {(footerSettings as any)?.headquarters_address ??
+                        "Sevoke Road, Near PC Mittal Bus Stand, Siliguri, West Bengal, Pin 734001, India"}
                     </p>
                   </div>
                 </div>
@@ -144,7 +155,7 @@ export default function Contact() {
 
           {/* Column 2: Form Panel (7 cols) */}
           <div className="lg:col-span-7 bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-xl relative flex flex-col justify-center">
-            
+
             {success ? (
               /* Submission Successful status */
               <div className="text-center py-12 space-y-6">
@@ -155,10 +166,12 @@ export default function Contact() {
                   <h3 className="text-2xl font-bold font-sans text-slate-900">Enquiry Submitted!</h3>
                   <p className="text-slate-500 text-sm max-w-md mx-auto">
                     Your customized enquiry was successfully logged. An email notification has been dropped to our desk at:
-                    <span className="block font-bold text-indigo-600 mt-1 font-mono">Info.colormytrip@gmail.com</span>
+                    <span className="block font-bold text-indigo-600 mt-1 font-mono">{emailAddress || 'info.colormytrip@gmail.com'}</span>
+
                   </p>
                   <p className="text-xs text-slate-400 font-medium">
                     We will review the parameters and get back to you along with the custom itinerary drafts via phone/WhatsApp.
+
                   </p>
                 </div>
                 <button
@@ -188,7 +201,7 @@ export default function Contact() {
                 )}
 
                 <form onSubmit={handleGeneralEnquiry} className="space-y-4">
-                  
+
                   {/* Row 1 - Name & Email */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>

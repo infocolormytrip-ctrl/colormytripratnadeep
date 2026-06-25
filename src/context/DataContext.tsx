@@ -1,24 +1,45 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { db, auth, isPlaceholder } from '../lib/firebase';
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  getDocsFromServer,
-  onSnapshot 
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot
 } from 'firebase/firestore';
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut, 
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
   onAuthStateChanged,
   User
 } from 'firebase/auth';
-import { TravelPackage, Enquiry, BlogPost, Review, VideoTestimonial, OfferMarqueeItem } from '../types';
-import { initialPackages, initialBlogs, initialReviews, initialVideoTestimonials, initialOffers } from '../initialData';
+import {
+  TravelPackage,
+  Enquiry,
+  BlogPost,
+  Review,
+  VideoTestimonial,
+  OfferMarqueeItem
+} from '../types';
+import {
+  initialPackages,
+  initialBlogs,
+  initialReviews,
+  initialVideoTestimonials,
+  initialOffers
+} from '../initialData';
+
+import {
+  SiteFooterSettings,
+  AboutSettings,
+  ContactSettings,
+  SiteBrandSettings,
+  NetaTagsSettings,
+} from '../types/siteSettings';
 
 // Firestore Error Logging Requirements
 enum OperationType {
@@ -39,7 +60,7 @@ interface FirestoreErrorInfo {
     email?: string | null;
     emailVerified?: boolean | null;
     isAnonymous?: boolean | null;
-  }
+  };
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
@@ -48,11 +69,11 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
     authInfo: {
       userId: auth?.currentUser?.uid || null,
       email: auth?.currentUser?.email || null,
-      emailVerified: auth?.currentUser?.emailVerified || null,
-      isAnonymous: auth?.currentUser?.isAnonymous || null,
+      emailVerified: (auth?.currentUser?.emailVerified ?? null) as boolean | null,
+      isAnonymous: (auth?.currentUser?.isAnonymous ?? null) as boolean | null,
     },
     operationType,
-    path
+    path,
   };
   console.error('Firestore Error Details: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
@@ -72,6 +93,21 @@ interface DataContextType {
   loginWithGoogle: () => Promise<void>;
   localAdminBypass: () => void;
   logout: () => Promise<void>;
+
+  // CMS - siteSettings (loaded from Firestore, with local fallback)
+  footerSettings: SiteFooterSettings;
+  aboutSettings: AboutSettings;
+  contactSettings: ContactSettings;
+  siteBrandSettings: SiteBrandSettings;
+  netaTagsSettings: NetaTagsSettings;
+
+  updateFooterSettings: (data: SiteFooterSettings) => Promise<void>;
+  updateAboutSettings: (data: AboutSettings) => Promise<void>;
+  updateContactSettings: (data: ContactSettings) => Promise<void>;
+  updateSiteBrandSettings: (data: SiteBrandSettings) => Promise<void>;
+  updateNetaTagsSettings: (data: NetaTagsSettings) => Promise<void>;
+
+
   addEnquiry: (enquiry: Omit<Enquiry, 'id' | 'createdAt' | 'status'>) => Promise<Enquiry>;
   updateEnquiryStatus: (id: string, status: 'pending' | 'responded' | 'closed') => Promise<void>;
   createPackage: (pkg: Omit<TravelPackage, 'id'>) => Promise<TravelPackage>;
@@ -80,7 +116,9 @@ interface DataContextType {
   createBlog: (post: Omit<BlogPost, 'id' | 'createdAt'>) => Promise<BlogPost>;
   updateBlog: (id: string, post: Partial<BlogPost>) => Promise<void>;
   deleteBlog: (id: string) => Promise<void>;
-  addVideoTestimonial: (video: Omit<VideoTestimonial, 'id' | 'createdAt'>) => Promise<VideoTestimonial>;
+  addVideoTestimonial: (
+    video: Omit<VideoTestimonial, 'id' | 'createdAt'>
+  ) => Promise<VideoTestimonial>;
   deleteVideoTestimonial: (id: string) => Promise<void>;
   createOffer: (offer: Omit<OfferMarqueeItem, 'id'>) => Promise<OfferMarqueeItem>;
   updateOffer: (id: string, offer: Partial<OfferMarqueeItem>) => Promise<void>;
@@ -106,6 +144,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bypassAdmin, setBypassAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const [footerSettings, setFooterSettings] = useState<SiteFooterSettings>({});
+  const [aboutSettings, setAboutSettings] = useState<AboutSettings>({});
+  const [contactSettings, setContactSettings] = useState<ContactSettings>({});
+
+  const [siteBrandSettings, setSiteBrandSettings] = useState<SiteBrandSettings>({});
+  const [netaTagsSettings, setNetaTagsSettings] = useState<NetaTagsSettings>({});
+
+
   const isFirebaseActive = !isPlaceholder;
 
   // 1. Sync Authentication
@@ -116,9 +162,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       });
       return unsubscribe;
-    } else {
-      setLoading(false);
     }
+    setLoading(false);
   }, [isFirebaseActive]);
 
   useEffect(() => {
@@ -134,22 +179,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // 2. Fetch Packages & Blogs
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Fetch Packages
       if (isFirebaseActive && db) {
         try {
           const pkgsCol = collection(db, 'packages');
           const snapshot = await getDocs(pkgsCol);
           if (snapshot.empty) {
-            // Seed packages if DB is brand new
             for (const p of initialPackages) {
               const { id, ...data } = p;
               await addDoc(collection(db, 'packages'), { ...data, createdAt: new Date().toISOString() });
             }
             const updatedSnap = await getDocs(pkgsCol);
-            const list = updatedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as TravelPackage));
+            const list = updatedSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as TravelPackage));
             setPackages(list);
           } else {
-            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TravelPackage));
+            const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as TravelPackage));
             setPackages(list);
           }
         } catch (error) {
@@ -157,7 +200,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           loadPackagesLocal();
         }
 
-        // Fetch Blogs
         try {
           const blogsCol = collection(db, 'blogs');
           const snapshot = await getDocs(blogsCol);
@@ -167,10 +209,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               await addDoc(collection(db, 'blogs'), { ...data });
             }
             const updatedSnap = await getDocs(blogsCol);
-            const list = updatedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+            const list = updatedSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BlogPost));
             setBlogs(list);
           } else {
-            const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BlogPost));
+            const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as BlogPost));
             setBlogs(list);
           }
         } catch (error) {
@@ -178,7 +220,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           loadBlogsLocal();
         }
       } else {
-        // Fallback Local Sync
         loadPackagesLocal();
         loadBlogsLocal();
       }
@@ -207,28 +248,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // 3. Fetch Enquiries (Only if admin logged in or bypass enabled)
-  const isAdminLoggedIn = bypassAdmin || (isFirebaseActive && adminUser && (
-    adminUser.email === 'info.colormytrip@gmail.com'
-  ));
+  const isAdminLoggedIn = Boolean(bypassAdmin || (isFirebaseActive && adminUser && adminUser.email === 'info.colormytrip@gmail.com'));
 
   useEffect(() => {
     if (isAdminLoggedIn) {
       if (isFirebaseActive && db) {
         const enqCol = collection(db, 'enquiries');
-        const unsubscribe = onSnapshot(enqCol, (snapshot) => {
-          const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Enquiry));
-          setEnquiries(list.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-        }, (error) => {
-          handleFirestoreError(error, OperationType.LIST, 'enquiries');
-        });
+        const unsubscribe = onSnapshot(
+          enqCol,
+          (snapshot) => {
+            const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Enquiry));
+            setEnquiries(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+          },
+          (error) => {
+            handleFirestoreError(error, OperationType.LIST, 'enquiries');
+          }
+        );
         return unsubscribe;
-      } else {
-        const stored = localStorage.getItem('cmt_enquiries');
-        if (stored) {
-          setEnquiries(JSON.parse(stored));
-        }
       }
+
+      const stored = localStorage.getItem('cmt_enquiries');
+      if (stored) setEnquiries(JSON.parse(stored));
     }
   }, [isAdminLoggedIn, isFirebaseActive]);
 
@@ -247,13 +287,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Google Sign In error:', error);
       }
     } else {
-      // Firebase not configured: do not allow sandbox/bypass login.
       setBypassAdmin(false);
     }
   };
 
   const localAdminBypass = () => {
-    setBypassAdmin(prev => !prev);
+    setBypassAdmin((prev) => !prev);
     const stored = localStorage.getItem('cmt_enquiries');
     if (stored) {
       setEnquiries(JSON.parse(stored));
@@ -271,7 +310,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // 4. CRUD operations: Enquiry Create
-  const addEnquiry = async (enquiryData: Omit<Enquiry, 'id' | 'createdAt' | 'status'>): Promise<Enquiry> => {
+  const addEnquiry = async (
+    enquiryData: Omit<Enquiry, 'id' | 'createdAt' | 'status'>
+  ): Promise<Enquiry> => {
     const newEnquiry: Enquiry = {
       ...enquiryData,
       id: Math.random().toString(36).substring(2, 9),
@@ -279,7 +320,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       status: 'pending',
     };
 
-    // Store in Firestore if active
     if (isFirebaseActive && db) {
       try {
         const docRef = await addDoc(collection(db, 'enquiries'), {
@@ -291,14 +331,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           message: newEnquiry.message,
           status: newEnquiry.status,
           createdAt: newEnquiry.createdAt,
-          packageId: newEnquiry.packageId || ''
+          packageId: newEnquiry.packageId || '',
         });
         newEnquiry.id = docRef.id;
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, 'enquiries');
       }
     } else {
-      // Local sync
       const stored = localStorage.getItem('cmt_enquiries');
       const list = stored ? JSON.parse(stored) : [];
       list.unshift(newEnquiry);
@@ -306,12 +345,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEnquiries(list);
     }
 
-    // Call full-stack Express API to trigger email logging to Info.colormytrip@gmail.com
     try {
       await fetch('/api/enquire', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEnquiry)
+        body: JSON.stringify(newEnquiry),
       });
     } catch (err) {
       console.warn('Backend email notification log request failed (it will still be saved to the database!):', err);
@@ -320,7 +358,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newEnquiry;
   };
 
-  // Update Enquiry Status
   const updateEnquiryStatus = async (id: string, status: 'pending' | 'responded' | 'closed') => {
     if (isFirebaseActive && db) {
       try {
@@ -330,7 +367,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         handleFirestoreError(err, OperationType.UPDATE, `enquiries/${id}`);
       }
     } else {
-      const updatedList = enquiries.map(e => e.id === id ? { ...e, status } : e);
+      const updatedList = enquiries.map((e) => (e.id === id ? { ...e, status } : e));
       localStorage.setItem('cmt_enquiries', JSON.stringify(updatedList));
       setEnquiries(updatedList);
     }
@@ -340,7 +377,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createPackage = async (pkgData: Omit<TravelPackage, 'id'>): Promise<TravelPackage> => {
     const newPkg: TravelPackage = {
       ...pkgData,
-      id: Math.random().toString(36).substring(2, 9)
+      id: Math.random().toString(36).substring(2, 9),
     };
 
     if (isFirebaseActive && db) {
@@ -356,10 +393,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           featured: newPkg.featured || false,
           itinerary: newPkg.itinerary || [],
           inclusions: newPkg.inclusions || [],
-          exclusions: newPkg.exclusions || []
+          exclusions: newPkg.exclusions || [],
         });
         newPkg.id = docRef.id;
-        setPackages(prev => [newPkg, ...prev]);
+        setPackages((prev) => [newPkg, ...prev]);
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, 'packages');
       }
@@ -379,12 +416,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const docRef = doc(db, 'packages', id);
         await updateDoc(docRef, updatedFields as any);
-        setPackages(prev => prev.map(p => p.id === id ? { ...p, ...updatedFields } : p));
+        setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)));
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, `packages/${id}`);
       }
     } else {
-      const list = packages.map(p => p.id === id ? { ...p, ...updatedFields } : p);
+      const list = packages.map((p) => (p.id === id ? { ...p, ...updatedFields } : p));
       localStorage.setItem('cmt_packages', JSON.stringify(list));
       setPackages(list);
     }
@@ -395,12 +432,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const docRef = doc(db, 'packages', id);
         await deleteDoc(docRef);
-        setPackages(prev => prev.filter(p => p.id !== id));
+        setPackages((prev) => prev.filter((p) => p.id !== id));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `packages/${id}`);
       }
     } else {
-      const list = packages.filter(p => p.id !== id);
+      const list = packages.filter((p) => p.id !== id);
       localStorage.setItem('cmt_packages', JSON.stringify(list));
       setPackages(list);
     }
@@ -411,7 +448,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newPost: BlogPost = {
       ...blogData,
       id: Math.random().toString(36).substring(2, 9),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     if (isFirebaseActive && db) {
@@ -423,10 +460,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           image: newPost.image,
           author: newPost.author,
           tags: newPost.tags || [],
-          createdAt: newPost.createdAt
+          createdAt: newPost.createdAt,
         });
         newPost.id = docRef.id;
-        setBlogs(prev => [newPost, ...prev]);
+        setBlogs((prev) => [newPost, ...prev]);
       } catch (err) {
         handleFirestoreError(err, OperationType.CREATE, 'blogs');
       }
@@ -446,12 +483,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const docRef = doc(db, 'blogs', id);
         await deleteDoc(docRef);
-        setBlogs(prev => prev.filter(b => b.id !== id));
+        setBlogs((prev) => prev.filter((b) => b.id !== id));
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `blogs/${id}`);
       }
     } else {
-      const list = blogs.filter(b => b.id !== id);
+      const list = blogs.filter((b) => b.id !== id);
       localStorage.setItem('cmt_blogs', JSON.stringify(list));
       setBlogs(list);
     }
@@ -462,12 +499,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const docRef = doc(db, 'blogs', id);
         await updateDoc(docRef, updatedFields as any);
-        setBlogs(prev => prev.map(b => b.id === id ? { ...b, ...updatedFields } : b));
+        setBlogs((prev) => prev.map((b) => (b.id === id ? { ...b, ...updatedFields } : b)));
       } catch (err) {
         handleFirestoreError(err, OperationType.UPDATE, `blogs/${id}`);
       }
     } else {
-      const list = blogs.map(b => b.id === id ? { ...b, ...updatedFields } : b);
+      const list = blogs.map((b) => (b.id === id ? { ...b, ...updatedFields } : b));
       localStorage.setItem('cmt_blogs', JSON.stringify(list));
       setBlogs(list);
     }
@@ -476,7 +513,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createOffer = async (offerData: Omit<OfferMarqueeItem, 'id'>): Promise<OfferMarqueeItem> => {
     const newOffer: OfferMarqueeItem = {
       ...offerData,
-      id: `offer-${Date.now()}`
+      id: `offer-${Date.now()}`,
     };
     const updated = [newOffer, ...offers];
     setOffers(updated);
@@ -485,7 +522,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateOffer = async (id: string, updatedFields: Partial<OfferMarqueeItem>) => {
-    const updated = offers.map((offer) => offer.id === id ? { ...offer, ...updatedFields } : offer);
+    const updated = offers.map((offer) => (offer.id === id ? { ...offer, ...updatedFields } : offer));
     setOffers(updated);
     localStorage.setItem('cmt_offers', JSON.stringify(updated));
   };
@@ -496,46 +533,267 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('cmt_offers', JSON.stringify(updated));
   };
 
+  const loadJsonLocal = <T,>(key: string, fallback: T): T => {
+    const stored = localStorage.getItem(key);
+    if (!stored) return fallback;
+    try {
+      return JSON.parse(stored) as T;
+    } catch {
+      return fallback;
+    }
+  };
+
+  useEffect(() => {
+    // Local defaults for editable CMS docs (used while loading / when Firebase is placeholder)
+    const loadLocalDefaults = () => {
+      const brand = loadJsonLocal<SiteBrandSettings>(
+        'cmt_site_brand',
+        { site_logo_url: '', footer_logo_url: '', favicon_url: '' }
+      );
+      setSiteBrandSettings(brand);
+
+      const neta = loadJsonLocal<NetaTagsSettings>('cmt_site_neta_tags', {
+        neta_tags: [],
+        neta_tags_text: ''
+      });
+      setNetaTagsSettings(neta);
+
+      const footer = loadJsonLocal<SiteFooterSettings>('cmt_site_footer', {
+        footer_description_text: '',
+        headquarters_address: '',
+        phone_number: '',
+        email_address: '',
+        copyright_text: '',
+        social_links: {
+          facebook_url: '',
+          instagram_url: '',
+          twitter_url: '',
+          youtube_url: ''
+        }
+      });
+      setFooterSettings(footer);
+
+      const about = loadJsonLocal<AboutSettings>('cmt_site_about', {
+        about_title: '',
+        about_description: '',
+        about_image_url: ''
+      });
+      setAboutSettings(about);
+
+    const contact = loadJsonLocal<ContactSettings>('cmt_site_contact', {
+        email_address: '',
+        // Default WhatsApp/phone hotline requested by admin
+        phone_number: '+91 9474103441'
+      });
+      setContactSettings(contact);
+
+    };
+
+    loadLocalDefaults();
+
+    if (!isFirebaseActive || !db) return;
+
+    // Live read from Firestore for immediate rerender after admin edits
+    const unsubscribers: Array<() => void> = [];
+
+    // const { doc, onSnapshot } = require('firebase/firestore');
+    // const { doc, onSnapshot } = await import('firebase/firestore');
+
+    const refFooter = doc(db, 'siteSettings', 'footer');
+    const refAbout = doc(db, 'siteSettings', 'about');
+    const refContact = doc(db, 'siteSettings', 'contact');
+    const refBrand = doc(db, 'siteBrandSettings', 'brand');
+    const refNeta = doc(db, 'netaTagsSettings', 'tags');
+
+    unsubscribers.push(
+      onSnapshot(refFooter, (snap: any) => {
+        const data = (snap?.data?.() || {}) as Partial<SiteFooterSettings>;
+        setFooterSettings({
+          footer_description_text: data.footer_description_text || '',
+          headquarters_address: data.headquarters_address || '',
+          phone_number: data.phone_number || '',
+          email_address: data.email_address || '',
+          copyright_text: data.copyright_text || '',
+          social_links: {
+            facebook_url: data.social_links?.facebook_url || '',
+            instagram_url: data.social_links?.instagram_url || '',
+            twitter_url: data.social_links?.twitter_url || '',
+            youtube_url: data.social_links?.youtube_url || ''
+          }
+        });
+      })
+    );
+
+    unsubscribers.push(
+      onSnapshot(refAbout, (snap: any) => {
+        const data = (snap?.data?.() || {}) as Partial<AboutSettings>;
+        setAboutSettings({
+          about_title: data.about_title || '',
+          about_description: data.about_description || '',
+          about_image_url: data.about_image_url || ''
+        });
+      })
+    );
+
+    unsubscribers.push(
+      onSnapshot(refContact, (snap: any) => {
+        const data = (snap?.data?.() || {}) as Partial<ContactSettings>;
+        setContactSettings({
+          email_address: data.email_address || '',
+          phone_number: data.phone_number || ''
+        });
+      })
+    );
+
+    unsubscribers.push(
+      onSnapshot(refBrand, (snap: any) => {
+        const data = (snap?.data?.() || {}) as Partial<SiteBrandSettings>;
+        setSiteBrandSettings({
+          site_logo_url: data.site_logo_url || '',
+          footer_logo_url: data.footer_logo_url || '',
+          favicon_url: data.favicon_url || ''
+        });
+      })
+    );
+
+    unsubscribers.push(
+      onSnapshot(refNeta, (snap: any) => {
+        const data = (snap?.data?.() || {}) as Partial<NetaTagsSettings>;
+        const tagsArr = Array.isArray(data.neta_tags) ? data.neta_tags : [];
+        setNetaTagsSettings({
+          neta_tags: tagsArr,
+          neta_tags_text: data.neta_tags_text || (tagsArr.length ? tagsArr.join(', ') : '')
+        });
+      })
+    );
+
+    return () => {
+      unsubscribers.forEach((u) => u && u());
+    };
+  }, [isFirebaseActive, db]);
+
+
+
+
+  const upsertSiteSettingsDoc = async (docId: 'footer' | 'about' | 'contact', data: any) => {
+    if (!(isFirebaseActive && db)) {
+      if (docId === 'footer') {
+        localStorage.setItem('cmt_site_footer', JSON.stringify(data));
+        setFooterSettings(data as SiteFooterSettings);
+      } else if (docId === 'about') {
+        localStorage.setItem('cmt_site_about', JSON.stringify(data));
+        setAboutSettings(data as AboutSettings);
+      } else {
+        localStorage.setItem('cmt_site_contact', JSON.stringify(data));
+        setContactSettings(data as ContactSettings);
+      }
+      return;
+    }
+
+    const ref = doc(db, 'siteSettings', docId);
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(ref, data, { merge: true } as any);
+  };
+
+  const upsertBrandDoc = async (data: SiteBrandSettings) => {
+    if (!(isFirebaseActive && db)) {
+      localStorage.setItem('cmt_site_brand', JSON.stringify(data));
+      setSiteBrandSettings(data);
+      return;
+    }
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(doc(db, 'siteBrandSettings', 'brand'), data, { merge: true } as any);
+  };
+
+  const upsertNetaTagsDoc = async (data: NetaTagsSettings) => {
+    if (!(isFirebaseActive && db)) {
+      localStorage.setItem('cmt_site_neta_tags', JSON.stringify(data));
+      setNetaTagsSettings(data);
+      return;
+    }
+    const { setDoc } = await import('firebase/firestore');
+    await setDoc(doc(db, 'netaTagsSettings', 'tags'), data, { merge: true } as any);
+  };
+
+  // CMS setters
+  const updateFooterSettings = async (data: SiteFooterSettings) => {
+    await upsertSiteSettingsDoc('footer', data);
+  };
+
+  const updateAboutSettings = async (data: AboutSettings) => {
+    await upsertSiteSettingsDoc('about', data);
+  };
+
+  const updateContactSettings = async (data: ContactSettings) => {
+    await upsertSiteSettingsDoc('contact', data);
+  };
+
+  const updateSiteBrandSettings = async (data: SiteBrandSettings) => {
+    await upsertBrandDoc(data);
+  };
+
+  const updateNetaTagsSettings = async (data: NetaTagsSettings) => {
+    await upsertNetaTagsDoc(data);
+  };
+
+
+
   return (
-    <DataContext.Provider value={{
-      packages,
-      blogs,
-      enquiries,
-      reviews,
-      videoTestimonials,
-      offers,
-      adminUser,
-      isAdminLoggedIn,
-      isFirebaseActive,
-      loading,
-      loginWithGoogle,
-      localAdminBypass,
-      logout,
-      addEnquiry,
-      updateEnquiryStatus,
-      createPackage,
-      updatePackage,
-      deletePackage,
-      createBlog,
-      updateBlog,
-      deleteBlog,
-      addVideoTestimonial: async (video: Omit<VideoTestimonial, 'id' | 'createdAt'>) => {
-        const newVideo: VideoTestimonial = {
-          ...video,
-          id: `vid-${Date.now()}`,
-          createdAt: new Date().toISOString().split('T')[0]
-        };
-        setVideoTestimonials([...videoTestimonials, newVideo]);
-        return newVideo;
-      },
-      deleteVideoTestimonial: async (id: string) => {
-        setVideoTestimonials(videoTestimonials.filter(v => v.id !== id));
-      },
-      createOffer,
-      updateOffer,
-      deleteOffer
-    }}>
+    <DataContext.Provider
+      value={{
+        packages,
+        blogs,
+        enquiries,
+        reviews,
+        videoTestimonials,
+        offers,
+        adminUser,
+        isAdminLoggedIn,
+        isFirebaseActive,
+        loading,
+        loginWithGoogle,
+        localAdminBypass,
+        logout,
+
+        footerSettings,
+        aboutSettings,
+        contactSettings,
+        siteBrandSettings,
+        netaTagsSettings,
+        updateFooterSettings,
+        updateAboutSettings,
+        updateContactSettings,
+        updateSiteBrandSettings,
+        updateNetaTagsSettings,
+
+
+        addEnquiry,
+        updateEnquiryStatus,
+        createPackage,
+        updatePackage,
+        deletePackage,
+        createBlog,
+        updateBlog,
+        deleteBlog,
+        addVideoTestimonial: async (video: Omit<VideoTestimonial, 'id' | 'createdAt'>) => {
+          const newVideo: VideoTestimonial = {
+            ...video,
+            id: `vid-${Date.now()}`,
+            createdAt: new Date().toISOString().split('T')[0],
+          };
+          setVideoTestimonials((prev) => [...prev, newVideo]);
+          return newVideo;
+        },
+        deleteVideoTestimonial: async (id: string) => {
+          setVideoTestimonials((prev) => prev.filter((v) => v.id !== id));
+        },
+        createOffer,
+        updateOffer,
+        deleteOffer,
+      }}
+    >
       {children}
     </DataContext.Provider>
   );
 };
+

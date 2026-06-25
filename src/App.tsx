@@ -13,6 +13,9 @@ import VideoTestimonials from './components/VideoTestimonials';
 import ReviewsCarousel from './components/ReviewsCarousel';
 import { TravelPackage } from './types';
 import InclusionsRow from './components/InclusionsRow';
+
+import logoWhite from "./assets/logo white.png";
+
 import { 
   Heart, 
   Compass, 
@@ -26,10 +29,13 @@ import {
   Twitter 
 } from 'lucide-react';
 
+
 function AppContent() {
+  const { footerSettings, siteBrandSettings } = useData();
   const [activeTab, setActiveTab] = useState('home');
   const [selectedPackage, setSelectedPackage] = useState<TravelPackage | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
+
 
   // Search parameters managed in main view state
   const [searchQuery, setSearchQuery] = useState('');
@@ -489,17 +495,32 @@ function AppContent() {
           
           {/* Logo Brand information */}
           <div className="md:col-span-4 space-y-4">
-            <img src="/assets/logo white.png" alt="ColorMyTrip" className="h-12 w-auto" />
+            <img
+              src={logoWhite}
+              alt="ColorMyTrip"
+              className="h-12 w-auto"
+            />
             
             <p className="text-xs sm:text-[13px] leading-relaxed text-slate-400">
-              Your uncommerialized partner for pristine family vacations, Himalayan mountaineering summits, and exotic budget-friendly world explorations.
+              {footerSettings?.footer_description_text ||
+                'Your uncommerialized partner for pristine family vacations, Himalayan mountaineering summits, and exotic budget-friendly world explorations.'}
             </p>
 
             <div className="flex gap-2 text-slate-500 pt-1">
-              <Facebook className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
-              <Instagram className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
-              <Twitter className="w-5 h-5 hover:text-white transition-colors cursor-pointer" />
+              <Facebook
+                onClick={() => (footerSettings?.social_links?.facebook_url ? window.open(footerSettings.social_links.facebook_url, '_blank') : undefined)}
+                className={`w-5 h-5 hover:text-white transition-colors cursor-pointer ${footerSettings?.social_links?.facebook_url ? '' : 'opacity-60'}`}
+              />
+              <Instagram
+                onClick={() => (footerSettings?.social_links?.instagram_url ? window.open(footerSettings.social_links.instagram_url, '_blank') : undefined)}
+                className={`w-5 h-5 hover:text-white transition-colors cursor-pointer ${footerSettings?.social_links?.instagram_url ? '' : 'opacity-60'}`}
+              />
+              <Twitter
+                onClick={() => (footerSettings?.social_links?.twitter_url ? window.open(footerSettings.social_links.twitter_url, '_blank') : undefined)}
+                className={`w-5 h-5 hover:text-white transition-colors cursor-pointer ${footerSettings?.social_links?.twitter_url ? '' : 'opacity-60'}`}
+              />
             </div>
+
           </div>
 
           {/* Quick links directory */}
@@ -534,30 +555,42 @@ function AppContent() {
               <p className="flex items-start gap-2 leading-relaxed">
                 <MapPin className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
                 <span>
-                  Sevoke Road, near PC Mittal Bus Stand, Siliguri,<br />
-                  Darjeeling foothills district, West Bengal, India, 734001
+                  {footerSettings?.headquarters_address ||
+                    'Sevoke Road, near PC Mittal Bus Stand, Siliguri, Darjeeling foothills district, West Bengal, India, 734001'}
                 </span>
               </p>
               
               <p className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                <span>Call Desk: +91 98320 12345</span>
+                <span>
+                  Call Desk: {footerSettings?.phone_number || '+91 98320 12345'}
+                </span>
               </p>
 
               <p className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                <span>Info Support Desk: <a href="mailto:Info.colormytrip@gmail.com" className="hover:underline font-mono text-slate-300">Info.colormytrip@gmail.com</a></span>
+                <span>
+                  Info Support Desk:{' '}
+                  <a
+                    href={`mailto:${footerSettings?.email_address || 'info.colormytrip@gmail.com'}`}
+                    className="hover:underline font-mono text-slate-300"
+                  >
+                    {footerSettings?.email_address || 'info.colormytrip@gmail.com'}
+                  </a>
+                </span>
               </p>
             </div>
           </div>
+
 
         </div>
 
         {/* Secondary footer line with Administrator Portal entry point */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-800 mt-12 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-slate-500 font-medium font-sans">
           <p>
-            © {new Date().getFullYear()} ColorMyTrip Private Limited. Coordinated with certified guide licenses and local mountain rescue networks.
+            {footerSettings?.copyright_text || `© ${new Date().getFullYear()} ColorMyTrip Private Limited. Coordinated with certified guide licenses and local mountain rescue networks.`}
           </p>
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAdminOpen(true)}
@@ -565,10 +598,6 @@ function AppContent() {
           >
             Tour Administrator Portal
           </button>
-          <span>•</span>
-          <span>Made with</span>
-          <Heart className="w-3 h-3 text-indigo-500 fill-indigo-500" />
-          <span>in Siliguri Hub. Homestay partner.</span>
         </div>
         </div>
       </footer>

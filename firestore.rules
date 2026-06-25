@@ -1,102 +1,15 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Global Safety Net (Deny-All)
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Admin Helper
-    // Checks if the user is authenticated and is either the bootstrapped admin email, 
-    // or has an admin document in the /admins/ collection.
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isEmailVerified() {
-      return isSignedIn() && (
-        request.auth.token.email_verified == true || 
-        request.auth.token.email == 'info.colormytrip@gmail.com'
-      );
-    }
-
     function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'info.colormytrip@gmail.com' ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
+      return request.auth != null && request.auth.token.email == 'info.colormytrip@gmail.com';
     }
 
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // 1. Enquiries Collection
-    // - Anyone can create an enquiry (so potential leads aren't blocked).
-    // - Only Admins can list/read/update/delete enquiries.
-    match /enquiries/{enquiryId} {
-      allow create: if isValidEnquiry(request.resource.data);
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow update, delete: if isAdmin() && isValidEnquiry(request.resource.data);
-    }
-
-    function isValidEnquiry(enq) {
-      return enq.keys().hasAll(['name', 'email', 'phone', 'destination', 'travelers', 'message', 'createdAt', 'status'])
-        && enq.name is string && enq.name.size() <= 100
-        && enq.email is string && enq.email.size() <= 100
-        && enq.phone is string && enq.phone.size() <= 30
-        && enq.destination is string && enq.destination.size() <= 150
-        && enq.travelers is int && enq.travelers >= 1 && enq.travelers <= 100
-        && enq.message is string && enq.message.size() <= 2000
-        && enq.status is string && enq.status in ['pending', 'responded', 'closed']
-        && enq.createdAt is string && enq.createdAt.size() <= 50;
-    }
-
-    // 2. Packages Collection
-    // - Public check: anyone can read packages.
-    // - Admin check: only admins can create, update, delete packages.
-    match /packages/{packageId} {
-      allow read: if true;
-      allow create, update: if isAdmin() && isValidPackage(request.resource.data);
-      allow delete: if isAdmin();
-    }
-
-    function isValidPackage(pkg) {
-      return pkg.keys().hasAll(['title', 'category', 'price', 'duration', 'location', 'image', 'description'])
-        && pkg.title is string && pkg.title.size() <= 200
-        && pkg.category is string && pkg.category in ['domestic', 'international', 'trekking']
-        && pkg.price is int && pkg.price >= 0
-        && pkg.duration is string && pkg.duration.size() <= 100
-        && pkg.location is string && pkg.location.size() <= 200
-        && pkg.image is string && pkg.image.size() <= 1000
-        && pkg.description is string && pkg.description.size() <= 5000;
-    }
-
-    // 3. Blogs Collection
-    // - Public: anyone can read blogs.
-    // - Admin: only admins can create, update, delete blogs.
-    match /blogs/{blogId} {
-      allow read: if true;
-      allow create, update: if isAdmin() && isValidBlog(request.resource.data);
-      allow delete: if isAdmin();
-    }
-
-    function isValidBlog(post) {
-      return post.keys().hasAll(['title', 'excerpt', 'content', 'image', 'author', 'createdAt'])
-        && post.title is string && post.title.size() <= 200
-        && post.excerpt is string && post.excerpt.size() <= 500
-        && post.content is string && post.content.size() <= 20000
-        && post.image is string && post.image.size() <= 1000
-        && post.author is string && post.author.size() <= 100
-        && post.createdAt is string && post.createdAt.size() <= 50;
-    }
-
-    // 4. Admins collection
-    // - Read/write restricted to admins
-    match /admins/{adminId} {
+    // Allow admin to read/write everything (all fields) in this Firestore.
+    match /{document=**} {
       allow read, write: if isAdmin();
     }
   }
 }
+

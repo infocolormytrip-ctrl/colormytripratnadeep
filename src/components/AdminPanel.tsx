@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { TravelPackage, BlogPost, OfferMarqueeItem } from '../types';
 import { 
@@ -47,11 +47,21 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     deleteVideoTestimonial,
     createOffer,
     updateOffer,
-    deleteOffer
+    deleteOffer,
+
+    // CMS settings
+    footerSettings,
+    contactSettings,
+    siteBrandSettings,
+    netaTagsSettings,
+    updateFooterSettings,
+    updateContactSettings,
+    updateSiteBrandSettings,
+    updateNetaTagsSettings
   } = useData();
 
   // Active view tabs
-  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos'>('enquiries');
+  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'website'>('enquiries');
   
   // Status filters for enquiries
   const [enqFilter, setEnqFilter] = useState<'all' | 'pending' | 'responded' | 'closed'>('all');
@@ -159,6 +169,51 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     setOfferBackground('#eef6ff');
     setOfferTextColor('#334155');
     setOfferEditingId(null);
+  };
+
+  // CMS form state
+  const [siteLogoUrl, setSiteLogoUrl] = useState('');
+  const [footerLogoUrl, setFooterLogoUrl] = useState('');
+  const [faviconUrl, setFaviconUrl] = useState('');
+
+  const [footerDescriptionText, setFooterDescriptionText] = useState('');
+  const [footerHeadquartersAddress, setFooterHeadquartersAddress] = useState('');
+  const [footerPhoneNumber, setFooterPhoneNumber] = useState('');
+  const [footerEmailAddress, setFooterEmailAddress] = useState('');
+  const [footerCopyrightText, setFooterCopyrightText] = useState('');
+
+  const [contactEmailAddress, setContactEmailAddress] = useState('');
+  const [contactPhoneNumber, setContactPhoneNumber] = useState('');
+
+  const [socialFacebookUrl, setSocialFacebookUrl] = useState('');
+  const [socialInstagramUrl, setSocialInstagramUrl] = useState('');
+  const [socialTwitterUrl, setSocialTwitterUrl] = useState('');
+  const [socialYoutubeUrl, setSocialYoutubeUrl] = useState('');
+
+  const [netaTagsText, setNetaTagsText] = useState('');
+
+  const resetCmsFormFromState = () => {
+    setSiteLogoUrl((siteBrandSettings as any)?.site_logo_url || '');
+    setFooterLogoUrl((siteBrandSettings as any)?.footer_logo_url || '');
+    setFaviconUrl((siteBrandSettings as any)?.favicon_url || '');
+
+    setFooterDescriptionText((footerSettings as any)?.footer_description_text || '');
+    setFooterHeadquartersAddress((footerSettings as any)?.headquarters_address || '');
+    setFooterPhoneNumber((footerSettings as any)?.phone_number || '');
+    setFooterEmailAddress((footerSettings as any)?.email_address || '');
+    setFooterCopyrightText((footerSettings as any)?.copyright_text || '');
+
+    setContactEmailAddress((contactSettings as any)?.email_address || '');
+    setContactPhoneNumber((contactSettings as any)?.phone_number || '');
+
+    setSocialFacebookUrl((footerSettings as any)?.social_links?.facebook_url || '');
+    setSocialInstagramUrl((footerSettings as any)?.social_links?.instagram_url || '');
+    setSocialTwitterUrl((footerSettings as any)?.social_links?.twitter_url || '');
+    setSocialYoutubeUrl((footerSettings as any)?.social_links?.youtube_url || '');
+
+    const tagsArr: string[] = (netaTagsSettings as any)?.neta_tags || [];
+    if (Array.isArray(tagsArr) && tagsArr.length) setNetaTagsText(tagsArr.join(', '));
+    else setNetaTagsText((netaTagsSettings as any)?.neta_tags_text || '');
   };
 
   const openOfferEditor = (offer: OfferMarqueeItem) => {
@@ -333,6 +388,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
   const filteredEnquiries = enquiries.filter(e => enqFilter === 'all' || e.status === enqFilter);
 
+  useEffect(() => {
+    if (panelTab === 'website') {
+      resetCmsFormFromState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panelTab, footerSettings, contactSettings, siteBrandSettings, netaTagsSettings]);
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-100 flex items-center justify-end">
       
@@ -487,6 +549,23 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   panelTab === 'videos' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
                 }`}>
                   {videoTestimonials.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setPanelTab('website')}
+                className={`w-full text-left px-4 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                  panelTab === 'website'
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
+                    : 'text-slate-600 hover:bg-slate-105 hover:text-slate-900'
+                }`}
+              >
+                <Palette className="w-5 h-5 shrink-0" />
+                <span>Website Settings</span>
+                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  panelTab === 'website' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  CMS
                 </span>
               </button>
 
@@ -1199,6 +1278,230 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         </div>
                       ))
                     )}
+                  </div>
+                </div>
+              )}
+
+              {panelTab === 'website' && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">Website Content & Contact CMS</h3>
+                      <p className="text-slate-500 text-xs">Update footer, contact details, brand assets, social links, and neta tags.</p>
+                    </div>
+                    <button
+                      onClick={resetCmsFormFromState}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-200 cursor-pointer border border-slate-200"
+                    >
+                      Load Saved Values
+                    </button>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="p-5 border-b border-slate-100">
+                      <h4 className="text-sm font-black text-slate-900">Footer Settings</h4>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Footer Description</label>
+                          <textarea
+                            rows={3}
+                            value={footerDescriptionText}
+                            onChange={(e) => setFooterDescriptionText(e.target.value)}
+                            className="w-full border border-slate-200 p-2 rounded-lg text-xs focus:outline-none focus:border-indigo-300"
+                            placeholder="Short footer paragraph"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Copyright Text</label>
+                          <input
+                            type="text"
+                            value={footerCopyrightText}
+                            onChange={(e) => setFooterCopyrightText(e.target.value)}
+                            className="w-full border border-slate-200 p-2 rounded-lg text-xs focus:outline-none focus:border-indigo-300"
+                            placeholder="© 2026 ..."
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 block mb-1">Headquarters Address (rendered in footer + contact)</label>
+                        <textarea
+                          rows={3}
+                          value={footerHeadquartersAddress}
+                          onChange={(e) => setFooterHeadquartersAddress(e.target.value)}
+                          className="w-full border border-slate-200 p-2 rounded-lg text-xs focus:outline-none focus:border-indigo-300"
+                          placeholder="Sevoke Road, near PC Mittal Bus Stand, ..."
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Phone Number</label>
+                          <input
+                            type="text"
+                            value={footerPhoneNumber}
+                            onChange={(e) => setFooterPhoneNumber(e.target.value)}
+                            className="w-full border border-slate-200 p-2 rounded-lg text-xs focus:outline-none focus:border-indigo-300"
+                            placeholder="+91 ..."
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Email Address</label>
+                          <input
+                            type="email"
+                            value={footerEmailAddress}
+                            onChange={(e) => setFooterEmailAddress(e.target.value)}
+                            className="w-full border border-slate-200 p-2 rounded-lg text-xs focus:outline-none focus:border-indigo-300"
+                            placeholder="info@..."
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900">Social Links (optional)</h4>
+                        <p className="text-[11px] text-slate-500 mt-1">Only URLs you provide will be linked from the footer icons.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Facebook URL</label>
+                          <input type="url" value={socialFacebookUrl} onChange={(e) => setSocialFacebookUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://facebook.com/..." />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Instagram URL</label>
+                          <input type="url" value={socialInstagramUrl} onChange={(e) => setSocialInstagramUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://instagram.com/..." />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Twitter URL</label>
+                          <input type="url" value={socialTwitterUrl} onChange={(e) => setSocialTwitterUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://twitter.com/..." />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">YouTube URL</label>
+                          <input type="url" value={socialYoutubeUrl} onChange={(e) => setSocialYoutubeUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://youtube.com/..." />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateFooterSettings({
+                                headquarters_address: footerHeadquartersAddress,
+                                phone_number: footerPhoneNumber,
+                                email_address: footerEmailAddress,
+                                footer_description_text: footerDescriptionText,
+                                copyright_text: footerCopyrightText,
+                                social_links: {
+                                  facebook_url: socialFacebookUrl || undefined,
+                                  instagram_url: socialInstagramUrl || undefined,
+                                  twitter_url: socialTwitterUrl || undefined,
+                                  youtube_url: socialYoutubeUrl || undefined,
+                                },
+                              } as any);
+                              alert('Footer settings saved successfully.');
+                            } catch (e) {
+                              console.error(e);
+                              alert('Failed to save footer settings.');
+                            }
+                          }}
+                          className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 cursor-pointer"
+                        >
+                          Save Footer Settings
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="p-5 border-b border-slate-100">
+                      <h4 className="text-sm font-black text-slate-900">Contact Page Settings</h4>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Contact Email (overrides footer email)</label>
+                          <input type="email" value={contactEmailAddress} onChange={(e) => setContactEmailAddress(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="info@..." />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Contact Phone (overrides footer phone)</label>
+                          <input type="text" value={contactPhoneNumber} onChange={(e) => setContactPhoneNumber(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="+91 ..." />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateContactSettings({
+                                email_address: contactEmailAddress,
+                                phone_number: contactPhoneNumber,
+                              } as any);
+                              alert('Contact settings saved successfully.');
+                            } catch (e) {
+                              console.error(e);
+                              alert('Failed to save contact settings.');
+                            }
+                          }}
+                          className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 cursor-pointer"
+                        >
+                          Save Contact Settings
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="p-5 border-b border-slate-100">
+                      <h4 className="text-sm font-black text-slate-900">Brand Assets + Neta Tags</h4>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Site Logo URL (fallback for footer logo)</label>
+                          <input type="url" value={siteLogoUrl} onChange={(e) => setSiteLogoUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://.../logo-white.png" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Footer Logo URL</label>
+                          <input type="url" value={footerLogoUrl} onChange={(e) => setFooterLogoUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://.../logo-white.png" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Favicon URL</label>
+                          <input type="url" value={faviconUrl} onChange={(e) => setFaviconUrl(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="https://.../favicon.ico" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 block mb-1">Neta Tags (comma separated)</label>
+                          <input type="text" value={netaTagsText} onChange={(e) => setNetaTagsText(e.target.value)} className="w-full border border-slate-200 p-2 rounded-lg text-xs" placeholder="neta1, neta2, neta3" />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const tagsArr = netaTagsText.split(',').map(s => s.trim()).filter(Boolean);
+                              await updateSiteBrandSettings({
+                                site_logo_url: siteLogoUrl || undefined,
+                                footer_logo_url: footerLogoUrl || undefined,
+                                favicon_url: faviconUrl || undefined,
+                              } as any);
+                              await updateNetaTagsSettings({
+                                neta_tags: tagsArr,
+                                neta_tags_text: netaTagsText,
+                              } as any);
+                              alert('Brand + neta tags saved successfully.');
+                            } catch (e) {
+                              console.error(e);
+                              alert('Failed to save brand/neta settings.');
+                            }
+                          }}
+                          className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 cursor-pointer"
+                        >
+                          Save Brand & Neta Tags
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

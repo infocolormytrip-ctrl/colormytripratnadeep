@@ -1,6 +1,8 @@
 import React from 'react';
 import { Compass, Menu, X, ShieldAlert, KeyRound, User as UserIcon } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import logoBlack from "../assets/logo black.png";
+
 
 interface NavbarProps {
   activeTab: string;
@@ -20,6 +22,11 @@ export default function Navbar({ activeTab, setActiveTab, openAdminPanel }: Navb
     { name: 'Blog', id: 'blog' },
   ];
 
+
+  const message = "Hi ColorMyTrip! I visited your website and would like to know more about your travel packages. Please share the available options. Thank you!";
+
+  const whatsappLink = `https://wa.me/919474103441?text=${encodeURIComponent(message)}`;
+
   return (
     <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100 shadow-sm transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,7 +34,7 @@ export default function Navbar({ activeTab, setActiveTab, openAdminPanel }: Navb
           
           {/* Logo Brand with custom SVG matching the uploaded image of ColorMyTrip */}
           <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => setActiveTab('home')}>
-            <img src="/assets/logo black.png" alt="ColorMyTrip" className="h-12 w-auto" />
+            <img src={logoBlack} alt="ColorMyTrip" className="h-12 w-auto" />
           </div>
 
           {/* Desktop Navigation */}
@@ -68,7 +75,7 @@ export default function Navbar({ activeTab, setActiveTab, openAdminPanel }: Navb
             <div className="h-6 w-[1px] bg-slate-200 mx-3" />
             
             <a
-              href="https://wa.me/919832012345?text=Hello%20ColorMyTrip%20Team!%20I'm%20interested%20in%20planning%20a%20trip."
+              href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-100 hover:bg-emerald-700 hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer border border-emerald-500/20"
@@ -83,7 +90,7 @@ export default function Navbar({ activeTab, setActiveTab, openAdminPanel }: Navb
           {/* Mobile menu button */}
           <div className="flex md:hidden items-center gap-2">
             <a
-              href="https://wa.me/919832012345?text=Hello%20ColorMyTrip%20Team!%20I'm%20interested%20in%20planning%20a%20trip."
+              href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold"
