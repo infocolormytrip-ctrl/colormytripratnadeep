@@ -62,67 +62,29 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
           
           <div className="lg:col-span-6 xl:col-span-6 space-y-6 text-center lg:text-left">
             
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-sky-100 text-sky-700 text-xs font-bold uppercase tracking-wider shadow-sm backdrop-blur-md">
+            {/* <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-sky-100 text-sky-700 text-xs font-bold uppercase tracking-wider shadow-sm backdrop-blur-md">
               <Compass className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '9s' }} />
-              <span>Premium travel planning with soul</span>
-            </div>
+              <span>Trusted Travel Planner for Customized Tours Across India</span>
+            </div> */}
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-bold tracking-tight text-slate-900 leading-[1.05]">
-              Adventure-ready trips with <span className="text-indigo-600">premium planning</span> and transparent pricing.
+              Discover India's Most <span className="text-indigo-600">Beautiful Destinations</span> with Expertly Crafted Tour Packages
             </h1>
             
             <p className="text-sm sm:text-base md:text-lg text-slate-600 max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Discover curated domestic tours, international escapes, and Himalayan treks crafted by experts. Every itinerary balances adventure, comfort, and budget.
+              From breathtaking Himalayan landscapes to pristine beaches and heritage cities, ColorMyTrip helps you explore India with carefully planned itineraries, trusted accommodations, experienced local guides, and 24×7 travel support. Every trip is personalized to match your budget and travel style.
             </p>
-
-            <div className="bg-white/90 p-3 sm:p-4 rounded-3xl shadow-xl shadow-sky-100/60 border border-white backdrop-blur-sm">
-              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all">
-                  <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="Where to? Sikkim, Kashmir, Bali..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-transparent border-none text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all sm:w-44">
-                  <Compass className="w-4 h-4 text-slate-400 shrink-0" />
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-transparent border-none text-xs sm:text-sm font-medium text-slate-700 focus:outline-none"
-                  >
-                    <option value="all">Any Type</option>
-                    <option value="domestic">Domestic</option>
-                    <option value="international">Int'l</option>
-                    <option value="trekking">Trekking</option>
-                  </select>
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-7 py-3 bg-linear-to-r from-indigo-600 to-sky-500 text-white font-bold text-xs sm:text-sm rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Explore Trips</span>
-                </button>
-              </form>
-            </div>
 
             <div className="flex justify-center lg:justify-start">
               <button
                 onClick={() => setActiveTab('packages')}
-                className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-white text-slate-900 font-bold text-sm border border-slate-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                className="inline-flex px-7 py-3 bg-linear-to-r from-indigo-600 to-sky-500 text-white font-bold text-xs sm:text-sm rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center  cursor-pointer"
               >
-                <BadgeCheck className="w-4 h-4 text-indigo-600" />
-                View Handpicked Packages
+                View Handpicked Tour Packages
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 max-w-xl text-xs text-slate-500">
+            {/* <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 max-w-xl text-xs text-slate-500">
               <span className="font-semibold text-slate-700">Trending:</span>
               {trendingSearches.map((pick) => (
                 <button
@@ -136,9 +98,11 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
                   #{pick.name}
                 </button>
               ))}
-            </div>
+            </div> */}
 
           </div>
+
+          
 
           <div className="lg:col-span-6 hidden sm:block xl:col-span-6 relative mt-10 lg:mt-0">
             <div className="relative w-full max-w-xl mx-auto aspect-6/5">
@@ -188,32 +152,71 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
 
         </div>
 
+        <div className="bg-white/90 p-3 sm:p-4 rounded-3xl mt-10  shadow-xl shadow-sky-100/60 border border-white backdrop-blur-sm">
+              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all">
+                  <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Where to? Sikkim, Kashmir, Bali..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent border-none text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 rounded-2xl border border-slate-100 focus-within:border-indigo-400 focus-within:bg-white transition-all sm:w-44">
+                  <Compass className="w-4 h-4 text-slate-400 shrink-0" />
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-transparent border-none text-xs sm:text-sm font-medium text-slate-700 focus:outline-none"
+                  >
+                    <option value="all">Any Type</option>
+                    <option value="domestic">Domestic</option>
+                    <option value="international">Int'l</option>
+                    <option value="trekking">Trekking</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-7 py-3 bg-linear-to-r from-indigo-600 to-sky-500 text-white font-bold text-xs sm:text-sm rounded-full shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Search className="w-4 h-4" />
+                  <span>Explore</span>
+                </button>
+              </form>
+            </div>
+
         <div className="hidden sm:grid grid-cols-2 md:grid-cols-4 gap-4 max-w-7xl mx-auto mt-5 pt-8 border-t border-slate-200">
           <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-slate-200 text-left shadow-sm">
             <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-650 shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">100% Secure</p><p className="text-[11px] text-slate-500">Certified local experts</p></div>
+            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">100% Secure Booking</p><p className="text-[11px] text-slate-500">Trusted payments and verified travel partners.</p></div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-slate-200 text-left shadow-sm">
             <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
               <Sun className="w-5 h-5" />
             </div>
-            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">Affordable</p><p className="text-[11px] text-slate-500">Best-value pricing</p></div>
+            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">Best Price Guarantee</p><p className="text-[11px] text-slate-500">Premium travel experiences at competitive prices.</p></div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-slate-200 text-left shadow-sm">
             <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center text-cyan-600 shrink-0">
               <Compass className="w-5 h-5" />
             </div>
-            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">Curated Trips</p><p className="text-[11px] text-slate-500">Personalized itineraries</p></div>
+            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">Customized Itineraries</p><p className="text-[11px] text-slate-500">Every journey is designed around your travel style.</p></div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-white/80 rounded-xl border border-slate-200 text-left shadow-sm">
             <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
               <BadgeCheck className="w-5 h-5" />
             </div>
-            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">Trusted Support</p><p className="text-[11px] text-slate-500">On-trip assistance</p></div>
+            <div><p className="font-bold text-slate-800 text-xs sm:text-sm">24×7 Travel Support</p><p className="text-[11px] text-slate-500">Dedicated assistance before, during and after your trip.</p></div>
           </div>
         </div>
+
+        
       </div>
     </div>
   );

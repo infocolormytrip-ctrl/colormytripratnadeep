@@ -87,10 +87,10 @@ function AppContent() {
                 <div className="text-center max-w-2xl mx-auto mb-10">
                   <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-650 font-mono block mb-1">Tailored Experiences</span>
                   <h2 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight">
-                    Explore Journeys by Category
+                    Explore India's Best Travel Destinations
                   </h2>
                   <p className="text-slate-500 text-xs sm:text-sm mt-1">
-                    Select your perfect travel vibe and dive directly into our handpicked collections.
+                    Choose from carefully curated domestic, international, honeymoon, adventure, family, group, and trekking tour packages across India's most loved destinations.
                   </p>
                 </div>
 
@@ -179,10 +179,13 @@ function AppContent() {
                 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-10">
                   <div>
-                    <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-600 font-mono block mb-1">Handpicked Selections</span>
+                    <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-600 font-mono block mb-1">Featured Packages</span>
                     <h2 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight leading-none">
-                      Featured Travel Packages
+                      Handpicked Travel Packages
                     </h2>
+                    <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                    Discover our most popular holiday packages with comfortable stays, private transportation, sightseeing, and unforgettable local experiences.
+                  </p>
                   </div>
                   <button
                     onClick={() => {
@@ -264,12 +267,12 @@ function AppContent() {
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <div className="text-center max-w-2xl mx-auto mb-10">
-                  <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-650 font-mono block mb-1">Our Top Crowd Pleasers</span>
+                  <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-650 font-mono block mb-1">Popular Packages</span>
                   <h2 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight">
-                    Most Popular Travel Packages
+                    Best Selling India Tour Packages
                   </h2>
                   <p className="text-slate-500 text-xs sm:text-sm mt-1">
-                    Join hundreds of groups, couples and trek organizations who explored these highest-rated trails.
+                    Explore customer-favorite tours including Kashmir, Meghalaya, Sikkim, Kerala, Andaman Islands, Himachal Pradesh, Uttarakhand, Rajasthan, and North East India.
                   </p>
                 </div>
 
@@ -394,8 +397,8 @@ function AppContent() {
                   {/* Right Column: Text Reviews Carousel */}
                   <div className="lg:col-span-7">
                     <div className="space-y-4">
-                      <h3 className="text-2xl font-black text-slate-900">Customer Stories</h3>
-                      <p className="text-slate-600 text-sm">Read honest reviews from families, couples, and trek enthusiasts</p>
+                      <h3 className="text-2xl font-black text-slate-900">Real Experiences from Happy Travelers</h3>
+                      <p className="text-slate-600 text-sm">Read genuine reviews from families, honeymoon couples, solo travelers, adventure enthusiasts, and corporate groups who explored India with ColorMyTrip.</p>
 
                       <ReviewsCarousel reviews={reviews} />
 
@@ -418,7 +421,7 @@ function AppContent() {
                             <p className="text-5xl font-sans font-black text-slate-900 leading-none">4.9</p>
                             <div className="flex justify-center text-amber-500 text-xl my-2">★★★★★</div>
                             <p className="text-xs text-slate-600 font-bold uppercase tracking-wider font-mono">
-                              Based on 184 Verified Reviews
+                              Based on 14 Verified Reviews
                             </p>
                           </div>
 
