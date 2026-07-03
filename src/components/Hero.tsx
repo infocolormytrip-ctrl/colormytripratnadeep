@@ -3,9 +3,9 @@ import { Search, MapPin, Compass, ShieldCheck, Sun, Plane, Camera, Briefcase, Ti
 import { useData } from '../context/DataContext';
 import ImageWithFallback from './ImageWithFallback';
 
-  import img1 from "../assets/images/3068226.jpg";
-import img2 from "../assets/images/Himalayan-Tour-and-Travel.jpg";
-import img3 from "../assets/images/Taj_Mahal.jpeg";
+import img1 from "../assets/Images/3068226.jpg";
+import img2 from "../assets/Images/Himalayan-Tour-and-Travel.jpg";
+import img3 from "../assets/Images/Taj_Mahal.jpeg";
 
 
 
