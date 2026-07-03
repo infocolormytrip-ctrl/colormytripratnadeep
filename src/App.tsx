@@ -17,9 +17,9 @@ import PackageCarousel from './components/PackageCarousel';
 import logoWhite from "./assets/logo white.png";
 
 
-import img1 from "./assets/images/Top-places-to-visit-in-Kashmir-in-July-2026-Dal-Lake-with-lush-green-mountains-and-shikaras-scaled.png";
-import img2 from "./assets/images/1319637_720.jpg";
-import img3 from "./assets/images/TRAKKING.jpg";
+import img1 from "./assets/Images/Himalayan-Tour-and-Travel.jpg";
+import img2 from "./assets/Images/Header_Thailand_Winter.avif";
+import img3 from "./assets/Images/TRAKKING.jpg";
 
 import {
   Heart,
