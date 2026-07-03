@@ -1,6 +1,11 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
-import { ShieldCheck, HeartHandshake, Compass, Star, Quote, Linkedin, Instagram, Globe } from 'lucide-react';
+import { ShieldCheck, HeartHandshake, Compass, Star, Quote, Linkedin, Instagram, Globe, Facebook } from 'lucide-react';
+
+
+import RatnadepImg from '../assets/Images/ratnadeep.png';
+import PoulamiImg from '../assets/Images/poulami.png';
+
 
 export default function About() {
   const { reviews } = useData();
@@ -14,20 +19,20 @@ export default function About() {
 
   const corePillars = [
     {
-      title: 'Crafted with Soul',
-      desc: 'We do not sell boxed commercial trips. Every itinerary is drawn manually with authentic homestays, polite local drivers, and hidden non-commercial locations.',
+      title: 'Personalized Travel Planning',
+      desc: 'Every itinerary is designed around your preferences—not pre-made templates. From honeymoon trips to family vacations, every journey is uniquely yours.',
       icon: Compass,
       color: 'bg-indigo-50 text-indigo-600 border-indigo-100',
     },
     {
-      title: 'Safety First Guidance',
-      desc: 'For Himalayan treks and remote Sikkim locations, our certified leaders carry full emergency equipment. We monitor routes in real-time, keeping your journey stress-free.',
+      title: 'Safety & Reliability',
+      desc: 'We partner with verified hotels, experienced drivers, trusted local guides, and reliable transport providers to ensure every journey is smooth and secure.',
       icon: ShieldCheck,
       color: 'bg-blue-50 text-blue-600 border-blue-100',
     },
     {
-      title: 'Uncompromised Integrity',
-      desc: 'No hidden permits costs, zero surprise union taxes. What we quote on the enquiry is exactly what you pay. We exist purely on our ratings and customer word-of-mouth.',
+      title: 'Transparent Pricing',
+      desc: "No hidden charges. No misleading promises. We provide clear quotations with complete itinerary details so you know exactly what you're paying for.",
       icon: HeartHandshake,
       color: 'bg-emerald-50 text-emerald-600 border-emerald-100',
     },
@@ -37,23 +42,22 @@ export default function About() {
     {
       name: 'Poulami Sengupta',
       role: 'Founder & Owner',
-      image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=600',
+      image: PoulamiImg,
       bio: 'Poulami Sengupta is the visionary behind ColorMyTrip, passionate about creating memorable travel experiences with personalized planning, comfort, and affordability. Her dedication towards customer satisfaction and curated travel experiences drives the brand forward.',
       socials: [
-        { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-        { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-        { icon: Globe, href: 'https://colormytrip.com', label: 'Website' }
+        { icon: Instagram, href: 'https://www.instagram.com/poulami.sengupta.948/', label: 'Instagram' },
+        { icon: Facebook, href: 'https://www.facebook.com/poulami.sengupta.948/', label: 'Facebook' }
       ]
     },
     {
       name: 'Ratnadeep Mukherjee',
       role: 'Co-founder & Travel Expert',
-      image: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=600',
+      image: RatnadepImg,
       bio: 'Ratnadeep Mukherjee specializes in travel planning, destination research, and customer experience strategy. His expertise in organizing seamless and budget-friendly trips helps travelers explore destinations with confidence and comfort.',
       socials: [
-        { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-        { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-        { icon: Globe, href: 'https://colormytrip.com', label: 'Website' }
+        { icon: Linkedin, href: 'https://www.linkedin.com/in/ratnadeep-mukherjee-301404a8/', label: 'LinkedIn' },
+        { icon: Instagram, href: 'https://www.instagram.com/ratnadeep_mukherjee/', label: 'Instagram' },
+        { icon: Facebook, href: 'https://www.facebook.com/ratnadeep.mukherjee1/', label: 'Facebook' }
       ]
     }
   ];
@@ -72,25 +76,25 @@ export default function About() {
             </div>
             
             <h2 className="text-3xl sm:text-4xl font-sans font-black text-slate-900 tracking-tight leading-tight">
-              An uncommercialized travel agency <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">bringing soul to tourism</span>.
+              A Travel Company That Believes Every <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">Journey Should Tell a Story</span>.
             </h2>
             
             <p className="text-slate-600 text-[15px] sm:text-base leading-relaxed">
-              We took our name **ColorMyTrip** and our motto **Travel with Soul** from an elemental desire: that travel should not feel like ticking off items on a sheet, but like painting live memories on your soul canvas.
+              At ColorMyTrip, we believe travel is more than reaching a destination—it's about creating unforgettable experiences, meaningful connections, and lifelong memories.
             </p>
             <p className="text-slate-600 text-[15px] sm:text-base leading-relaxed">
-              Based in the beautiful foothills of East India, we started as a small, passionate team of mountaineers and travel coordinates. Over the years, we have expanded our family to offer premium, unhurried, and highly affordable tours across India, Bhutan, Bali, and Nepal.
+              Founded with the vision of promoting responsible, personalized, and affordable tourism, we specialize in carefully crafted travel experiences that match every traveler's dream. Whether you're planning a romantic honeymoon, a family vacation, an adventurous mountain escape, a spiritual retreat, or a corporate group tour, we design journeys that feel personal rather than commercial. Today, ColorMyTrip proudly serves travelers across India, Bhutan, Nepal, Bali, Thailand, Dubai, Vietnam, Singapore, and many more exciting destinations, helping thousands of guests travel with confidence and peace of mind.
             </p>
 
             {/* Metrics list */}
-            <div className="grid grid-cols-2 gap-4 pt-4">
+            {/* <div className="grid grid-cols-2 gap-4 pt-4">
                {metrics.map((m, idx) => (
                 <div key={idx} className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
                   <p className="text-xl sm:text-2xl font-black text-indigo-650 leading-none mb-1">{m.value}</p>
                   <p className="text-xs text-slate-500 font-semibold">{m.label}</p>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* Visual block */}
@@ -120,7 +124,7 @@ export default function About() {
         <div className="bg-slate-50/50 rounded-3xl p-8 md:p-12 border border-slate-150 mb-20">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h3 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight">
-              Our Core Philosophical Pillars
+              Our Core Travel Philosophy
             </h3>
             <p className="text-slate-500 text-sm mt-2">
               Every package is designed and coordinated according to three rules of soulfulness.

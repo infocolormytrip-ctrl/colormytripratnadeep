@@ -1,15 +1,157 @@
 rules_version = '2';
 
 service cloud.firestore {
-  match /databases/{database}/documents {
-    function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'info.colormytrip@gmail.com';
-    }
+	match /databases/{database}/documents {
 
-    // Allow admin to read/write everything (all fields) in this Firestore.
-    match /{document=**} {
-      allow read, write: if isAdmin();
-    }
-  }
+		function signedIn() {
+			return request.auth != null;
+		}
+
+		function userDoc() {
+    return get(/databases/$(database)/documents/users/$(request.auth.uid));
 }
 
+function isAffiliate() {
+    return request.auth != null &&
+           userDoc().data.role == "affiliate" &&
+           userDoc().data.status == "active";
+}
+
+function isAdmin() {
+    return request.auth != null &&
+        (
+            request.auth.token.email == "info.colormytrip@gmail.com" ||
+            (
+                userDoc().data.role == "admin" &&
+                userDoc().data.status == "active"
+            )
+        );
+}
+
+		function myAffiliateId() {
+			return userDoc().data.affiliateId;
+		}
+
+		function isOwnAffiliateDoc(affiliateId) {
+			return isAffiliate() && affiliateId == myAffiliateId();
+		}
+
+		function isOwnUserDoc(uid) {
+			return signedIn() && request.auth.uid == uid;
+		}
+
+		match /users/{uid} {
+			allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin();
+			allow write: if isAdmin();
+			// Allow users to create/update their own profile (first-time sign-in bootstrap)
+			allow create, update: if isOwnUserDoc(uid);
+			allow delete: if isAdmin();
+		}
+
+		match /affiliates/{affiliateId} {
+			// Any signed-in user can read affiliates (needed for first-time login email lookup)
+			allow read, list: if signedIn();
+			allow create, update, delete: if isAdmin();
+		}
+
+		match /promoCodes/{promoId} {
+			// Promo codes are non-sensitive marketing data; allow public read for validation.
+			// Only admins can create/modify/delete.
+			allow read, list: if true;
+			allow create, update, delete: if isAdmin();
+		}
+
+		match /enquiries/{enquiryId} {
+			// Public can create enquiries (customer booking form).
+			allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message'])
+				&& request.resource.data.name is string
+				&& request.resource.data.email is string
+				&& request.resource.data.message is string
+				&& request.resource.data.name.size() > 0
+				&& request.resource.data.email.size() > 0
+				&& request.resource.data.message.size() > 0;
+
+			// Admins can read all; affiliates can only read enquiries linked to their affiliate ID.
+			allow read: if isAdmin() || (isAffiliate() && resource.data.affiliateId == myAffiliateId());
+			// Allow any signed-in user to list (filtered client-side and verified by single-doc read rule).
+			allow list: if signedIn();
+			allow update: if isAdmin();
+			allow delete: if isAdmin();
+		}
+
+		match /bookings/{bookingId} {
+			allow read: if isAdmin() || (isAffiliate() && resource.data.affiliateId == myAffiliateId());
+			allow list: if signedIn();
+			allow create, update, delete: if isAdmin();
+		}
+
+		match /commissions/{commissionId} {
+    allow get: if isAdmin() ||
+        (isAffiliate() && resource.data.affiliateId == myAffiliateId());
+
+    allow list: if isAdmin() || isAffiliate();
+
+    allow create, update, delete: if isAdmin();
+}
+
+
+		match /notifications/{notificationId} {
+			allow read: if isAdmin() || (isAffiliate() && (resource.data.userUid == request.auth.uid || resource.data.affiliateId == myAffiliateId()));
+			allow list: if signedIn();
+			// Allow any signed-in user to create notifications (needed for enquiry submission flow).
+			allow create: if signedIn();
+			allow update: if isAdmin() || (signedIn() && resource.data.affiliateId == myAffiliateId());
+			allow delete: if isAdmin();
+		}
+
+		match /activityLogs/{activityId} {
+			allow read: if isAdmin();
+			allow create: if isAdmin();
+			allow update, delete: if false;
+		}
+
+		match /packages/{packageId} {
+			allow read: if true;
+			allow create, update, delete: if isAdmin();
+		}
+
+		match /blogs/{blogId} {
+			allow read: if true;
+			allow create, update, delete: if isAdmin();
+		}
+
+		match /siteSettings/{docId} {
+			allow read: if true;
+			allow write: if isAdmin();
+		}
+
+		match /siteBrandSettings/{docId} {
+			allow read: if true;
+			allow write: if isAdmin();
+		}
+
+		match /netaTagsSettings/{docId} {
+			allow read: if true;
+			allow write: if isAdmin();
+		}
+
+		match /reviews/{reviewId} {
+			allow read: if true;
+			allow write: if isAdmin();
+		}
+
+		match /videoTestimonials/{videoId} {
+			allow read: if true;
+			allow write: if isAdmin();
+		}
+
+		match /offers/{offerId} {
+			allow read: if true;
+			allow write: if isAdmin();
+		}
+
+		match /{document=**} {
+			allow read, write: if false;
+		}
+	}
+}

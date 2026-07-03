@@ -18,12 +18,20 @@ if (!isFirebasePlaceholder) {
     firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     dbInstance = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId || '(default)');
     authInstance = getAuth(firebaseApp);
-    console.log('Firebase initialized with custom credentials');
+    // console.log('Firebase initialized with custom credentials');
+
+//     console.log(firebaseApp.options.projectId);
+// console.log(firebaseConfig.firestoreDatabaseId);
+
+
   } catch (error) {
     console.error('Failed to initialize Firebase with credentials, falling back to mock mode:', error);
     isFirebasePlaceholder; // toggle back to safe fallback
   }
 }
+
+
+
 
 // Fallback handles
 export const db = dbInstance;

@@ -11,6 +11,15 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
+  // Remove COOP header in dev so Firebase signInWithPopup can communicate with the popup window
+  if (process.env.NODE_ENV !== 'production') {
+    app.use((_req, res, next) => {
+      res.removeHeader('Cross-Origin-Opener-Policy');
+      res.removeHeader('Cross-Origin-Embedder-Policy');
+      next();
+    });
+  }
+
   // Body parser for enquiry submissions
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));

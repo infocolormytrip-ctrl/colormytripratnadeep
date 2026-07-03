@@ -1,20 +1,21 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { TravelPackage, Enquiry } from '../types';
 import { useData } from '../context/DataContext';
-import { 
-  ArrowLeft, 
-  Clock, 
-  MapPin, 
-  CheckCircle2, 
-  XCircle, 
-  Calendar, 
-  Users, 
-  Mail, 
-  User, 
-  Phone, 
+import {
+  ArrowLeft,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  XCircle,
+  Calendar,
+  Users,
+  Mail,
+  User,
+  Phone,
   MessageSquare,
   Sparkles,
-  PartyPopper
+  PartyPopper,
+  Share2,
 } from 'lucide-react';
 
 interface PackageDetailsProps {
@@ -23,9 +24,53 @@ interface PackageDetailsProps {
 }
 
 export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
-  const { addEnquiry } = useData();
+  const { showToast, addEnquiry, validatePromoCode } = useData();
   const [activeTab, setActiveTab] = useState<'itinerary' | 'inclusions'>('itinerary');
-  
+
+  const shareUrl = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    return window.location.href;
+  }, []);
+
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copied' | 'error'>('idle');
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleShareClick = async () => {
+    if (!shareUrl) return;
+    const ok = await copyToClipboard(shareUrl);
+    setShareStatus(ok ? 'copied' : 'error');
+    window.setTimeout(() => setShareStatus('idle'), 2000);
+    if (ok) {
+      showToast('copy', 'Link Copied', 'Package share URL copied to clipboard.');
+    } else {
+      showToast('error', 'Copy Failed', 'Could not copy link to clipboard.');
+    }
+  };
+
   // Enquiry form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +78,25 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
   const [travelDate, setTravelDate] = useState('');
   const [travelers, setTravelers] = useState(2);
   const [message, setMessage] = useState('');
-  
+
+  // Promo Code (Optional) - Phase 2
+  const [promoCode, setPromoCode] = useState('');
+  const [promoStatus, setPromoStatus] = useState<
+    'idle' | 'validating' | 'applied' | 'invalid'
+  >('idle');
+  const [promoAffiliateName, setPromoAffiliateName] = useState<string>('');
+  const [promoReason, setPromoReason] = useState<string>('');
+
+  // Rule 4 - Estimated Booking Amount (Budget)
+  const [estimatedBookingAmount, setEstimatedBookingAmount] = useState<string>('');
+
+  useEffect(() => {
+    if (pkg.price) {
+      setEstimatedBookingAmount(String(pkg.price * travelers));
+    }
+  }, [pkg.price, travelers]);
+
+
   // Submission flags
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -50,6 +113,38 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
     setErrorMsg('');
 
     try {
+      // Promo validation (optional)
+      let promoFields: {
+        promoCode?: string;
+        affiliateId?: string;
+        affiliateEmail?: string;
+        affiliateName?: string;
+        commissionType?: 'Percentage' | 'Fixed Amount';
+        commissionValue?: number;
+      } = {};
+
+      const trimmedPromo = promoCode.trim();
+      if (trimmedPromo) {
+        const res = await validatePromoCode(trimmedPromo, pkg.id);
+
+        if (res.valid) {
+          promoFields = {
+            promoCode: res.promo.code,
+            affiliateId: res.promo.affiliateId,
+            affiliateEmail: res.promo.affiliateEmail,
+            affiliateName: res.promo.affiliateName,
+            commissionType: res.promo.commissionType as any,
+            commissionValue:
+              typeof res.promo.commissionValue === 'number'
+                ? res.promo.commissionValue
+                : undefined,
+          };
+        } else {
+          // Invalid promo should not apply commission (but enquiry should submit)
+          promoFields = {};
+        }
+      }
+
       await addEnquiry({
         name,
         email,
@@ -59,6 +154,15 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
         travelers: Number(travelers),
         message: message || `Enquiry for ${pkg.title} (${pkg.duration})`,
         packageId: pkg.id,
+        promoCode: promoFields.promoCode,
+        affiliateId: promoFields.affiliateId,
+        affiliateEmail: promoFields.affiliateEmail,
+        affiliateName: promoFields.affiliateName,
+        commissionType: promoFields.commissionType,
+        commissionValue: promoFields.commissionValue,
+        estimatedBookingAmount: Number(estimatedBookingAmount || 0),
+        status: 'Enquired',
+        bookingStatus: 'Enquired',
       });
 
       setSuccess(true);
@@ -69,6 +173,10 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
       setTravelDate('');
       setTravelers(2);
       setMessage('');
+      setPromoCode('');
+      setPromoStatus('idle');
+      setPromoAffiliateName('');
+      setPromoReason('');
     } catch (err) {
       setErrorMsg('Failed to submit enquiry. Please verify your connection.');
       console.error(err);
@@ -127,9 +235,36 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
                   </div>
                 </div>
 
-                <h1 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight leading-tight mb-4">
-                  {pkg.title}
-                </h1>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <h1 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight leading-tight">
+                    {pkg.title}
+                  </h1>
+
+                  <button
+                    type="button"
+                    onClick={handleShareClick}
+                    aria-label="Share this package"
+                    className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/90 border border-slate-100 text-slate-600 hover:text-indigo-600 hover:border-indigo-100 hover:bg-white transition-all cursor-pointer"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Toast */}
+                {shareStatus !== 'idle' && (
+                  <div
+                    className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl border text-xs font-bold shadow-lg backdrop-blur bg-white/95 transition-all ${
+                      shareStatus === 'copied'
+                        ? 'border-emerald-200 text-emerald-700'
+                        : 'border-rose-200 text-rose-700'
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {shareStatus === 'copied' ? 'Link copied!' : 'Copy failed. Please try again.'}
+                  </div>
+                )}
+
 
                 <p className="text-slate-600 font-normal leading-relaxed text-sm sm:text-base">
                   {pkg.description}
@@ -168,8 +303,20 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
               {activeTab === 'itinerary' && (
                 <div className="space-y-6">
                   {pkg.itinerary && pkg.itinerary.length > 0 ? (
-                    pkg.itinerary.map((day, index) => {
-                      const [dayLabel, ...descParts] = day.split(':');
+                    pkg.itinerary.map((dayRaw, index) => {
+                      // Normalize: handle both string items and object items from JSON upload
+                      const dayStr: string = typeof dayRaw === 'string'
+                        ? dayRaw
+                        : typeof dayRaw === 'object' && dayRaw !== null
+                        ? (() => {
+                            const o = dayRaw as Record<string, unknown>;
+                            const label = o.day ? `Day ${o.day}` : o.title ? String(o.title) : `Day ${index + 1}`;
+                            const body = String(o.description ?? o.details ?? o.activities ?? o.activity ?? '');
+                            return body ? `${label}: ${body}` : label;
+                          })()
+                        : String(dayRaw ?? '');
+
+                      const [dayLabel, ...descParts] = dayStr.split(':');
                       const descText = descParts.join(':').trim();
                       return (
                         <div key={index} className="flex gap-4 relative">
@@ -189,7 +336,7 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
                               {dayLabel || `Day ${index + 1}`}
                             </h4>
                             <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                              {descText || day}
+                              {descText || dayStr}
                             </p>
                           </div>
                         </div>
@@ -384,6 +531,80 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* Estimated Booking Amount */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1.5">Estimated Booking Amount (₹) *</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          placeholder="Your budget or estimated amount"
+                          value={estimatedBookingAmount}
+                          onChange={(e) => setEstimatedBookingAmount(e.target.value)}
+                          className="w-full pl-3 pr-3 py-2.5 bg-slate-50 text-[13px] border border-slate-100 focus:border-indigo-400 focus:bg-white rounded-xl text-slate-800 transition-all focus:outline-none font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Promo Code (Optional) */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wide mb-1.5">
+                        Promo Code (Optional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Enter promo code"
+                          value={promoCode}
+                          onChange={(e) => {
+                            setPromoCode(e.target.value);
+                            setPromoStatus('idle');
+                            setPromoAffiliateName('');
+                            setPromoReason('');
+                          }}
+                          onBlur={async () => {
+                            const trimmed = promoCode.trim();
+                            if (!trimmed) {
+                              setPromoStatus('idle');
+                              setPromoAffiliateName('');
+                              setPromoReason('');
+                              return;
+                            }
+                            setPromoStatus('validating');
+                            setPromoReason('');
+                            const res = await validatePromoCode(trimmed, pkg.id);
+                            if (res.valid) {
+                              setPromoStatus('applied');
+                              setPromoAffiliateName(res.promo.affiliateName || '');
+                            } else {
+                              setPromoStatus('invalid');
+                              const invalidRes = res as { valid: false; reason?: string };
+                              setPromoReason(invalidRes.reason === 'package_not_applicable' ? 'package_not_applicable' : 'invalid');
+                              setPromoAffiliateName('');
+                            }
+                          }}
+                          className="w-full pl-3 pr-3 py-2.5 bg-slate-50 text-[13px] border border-slate-100 focus:border-indigo-400 focus:bg-white rounded-xl text-slate-800 transition-all focus:outline-none font-medium"
+                        />
+                      </div>
+
+                      {promoStatus === 'applied' && (
+                        <div className="mt-2 p-3 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg text-xs font-semibold">
+                          ✓ Promo Code Applied
+                          {promoAffiliateName ? (
+                            <span className="block mt-1 font-bold">
+                              Affiliate: {promoAffiliateName}
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
+                      {promoStatus === 'invalid' && (
+                        <div className="mt-2 p-3 bg-rose-50 text-rose-700 border border-rose-100 rounded-lg text-xs font-semibold">
+                          ✗ {promoReason === 'package_not_applicable' ? 'Promo code is not applicable for this package.' : 'Invalid Promo Code'}
+                        </div>
+                      )}
                     </div>
 
                     {/* Notes / Message */}

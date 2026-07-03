@@ -3,6 +3,8 @@ import { useData } from '../context/DataContext';
 import { TravelPackage } from '../types';
 import { Compass, Clock, MapPin, Tag, ChevronRight, SlidersHorizontal, Search } from 'lucide-react';
 import InclusionsRow from './InclusionsRow';
+import { useNavigate } from 'react-router-dom';
+
 
 interface PackagesProps {
   searchQuery: string;
@@ -20,6 +22,8 @@ export default function Packages({
   onSelectPackage,
 }: PackagesProps) {
   const { packages } = useData();
+  const navigate = useNavigate();
+
   const [internalSearch, setInternalSearch] = useState(searchQuery);
 
   // Sync internal search with query from hero
@@ -223,7 +227,7 @@ export default function Packages({
 
                     {/* View Details / Enquire button */}
                     <button
-                      onClick={() => onSelectPackage(pkg)}
+                      onClick={() => navigate(`/package/${pkg.id}`)}
                       className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-slate-950 hover:bg-slate-800 shadow-sm transition-all duration-200 flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>Details</span>

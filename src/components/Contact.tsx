@@ -15,8 +15,8 @@ export default function Contact() {
   const [destination, setDestination] = useState('');
   const [travelDate, setTravelDate] = useState('');
   const [travelers, setTravelers] = useState(2);
+  const [estimatedBookingAmount, setEstimatedBookingAmount] = useState<string>('');
   const [message, setMessage] = useState('');
-
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -40,6 +40,9 @@ export default function Contact() {
         destination,
         travelers: Number(travelers),
         message: message || `General customized enquiry for can trip planning.`,
+        estimatedBookingAmount: Number(estimatedBookingAmount || 0),
+        status: 'Enquired',
+        bookingStatus: 'Enquired',
       });
 
       setSuccess(true);
@@ -50,6 +53,7 @@ export default function Contact() {
       setDestination('');
       setTravelDate('');
       setTravelers(2);
+      setEstimatedBookingAmount('');
       setMessage('');
     } catch (err) {
       setErrorMsg('Failed to submit enquiry. Please verify your connection.');
@@ -277,6 +281,20 @@ export default function Contact() {
                         className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 focus:border-indigo-400 focus:bg-white rounded-xl text-[13.5px] font-medium text-slate-800 transition-all focus:outline-none"
                       />
                     </div>
+                  </div>
+
+                  {/* Estimated Booking Amount */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">Estimated Booking Amount / Budget (₹) *</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      placeholder="Enter your estimated budget"
+                      value={estimatedBookingAmount}
+                      onChange={(e) => setEstimatedBookingAmount(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-100 focus:border-indigo-400 focus:bg-white rounded-xl text-[13.5px] font-medium text-slate-800 transition-all focus:outline-none"
+                    />
                   </div>
 
                   {/* Message textarea */}

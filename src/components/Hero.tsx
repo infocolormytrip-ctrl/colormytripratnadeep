@@ -3,6 +3,11 @@ import { Search, MapPin, Compass, ShieldCheck, Sun, Plane, Camera, Briefcase, Ti
 import { useData } from '../context/DataContext';
 import ImageWithFallback from './ImageWithFallback';
 
+  import img1 from "../assets/images/3068226.jpg";
+import img2 from "../assets/images/Himalayan-Tour-and-Travel.jpg";
+import img3 from "../assets/images/Taj_Mahal.jpeg";
+
+
 
 interface HeroProps {
   onSearch: (query: string, category: string) => void;
@@ -29,6 +34,9 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
 
   const activeOffers = useMemo(() => offers.filter((offer) => offer.is_active), [offers]);
   const tickerSpeed = activeOffers[0]?.speed ?? 30;
+
+
+
 
   return (
     <div className="relative bg-linear-to-b from-sky-50 via-amber-50/70 to-white overflow-hidden">
@@ -110,7 +118,7 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
 
               <div className="absolute left-[8%] top-[6%] w-[42%] aspect-3/4 rounded-2xl overflow-hidden shadow-2xl border-4 border-white rotate-[-9deg] animate-float-soft">
                 <ImageWithFallback
-                  src="https://images.pexels.com/photos/1619317/pexels-photo-1619317.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src={img1}
                   alt="Mountain destination"
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -120,7 +128,7 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
 
               <div className="absolute right-[8%] top-[8%] w-[46%] aspect-4/3 rounded-2xl overflow-hidden shadow-2xl border-4 border-white rotate-[7deg] animate-float-softer">
                 <ImageWithFallback
-                  src="https://images.pexels.com/photos/3155666/pexels-photo-3155666.jpeg?auto=compress&cs=tinysrgb&w=600"
+                  src={img2}
                   alt="Beach destination"
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -130,8 +138,8 @@ export default function Hero({ onSearch, setActiveTab }: HeroProps) {
 
               <div className="absolute left-[33%] bottom-[11%] w-[40%] aspect-4/3 rounded-2xl overflow-hidden shadow-xl border-4 border-white -rotate-3 animate-float-soft">
                 <ImageWithFallback
-                  src="https://images.pexels.com/photos/1671325/pexels-photo-1671325.jpeg?auto=compress&cs=tinysrgb&w=600"
-                  alt="Adventure collage visual"
+                  src={img3}
+                  alt="Goa"
                   className="w-full h-full object-cover"
                   loading="lazy"
                   referrerPolicy="no-referrer"

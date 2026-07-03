@@ -7,18 +7,17 @@ import logoBlack from "../assets/logo black.png";
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  openAdminPanel: () => void;
 }
 
-export default function Navbar({ activeTab, setActiveTab, openAdminPanel }: NavbarProps) {
+export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { isAdminLoggedIn, isFirebaseActive, loginWithGoogle, logout } = useData();
+  const { isFirebaseActive } = useData();
 
   const navigation = [
     { name: 'Home', id: 'home' },
     { name: 'About Us', id: 'about' },
     { name: 'Packages', id: 'packages' },
-    { name: 'Gallery', id: 'gallery' },
+    // { name: 'Gallery', id: 'gallery' }, // Hidden — re-enable when gallery is ready
     { name: 'Blog', id: 'blog' },
   ];
 

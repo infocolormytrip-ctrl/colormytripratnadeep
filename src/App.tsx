@@ -5,28 +5,33 @@ import Hero from './components/Hero';
 import Packages from './components/Packages';
 import PackageDetails from './components/PackageDetails';
 import About from './components/About';
-import Gallery from './components/Gallery';
+// import Gallery from './components/Gallery'; // Hidden - re-enable when gallery is ready
 import Blog from './components/Blog';
 import Contact from './components/Contact';
-import AdminPanel from './components/AdminPanel';
 import VideoTestimonials from './components/VideoTestimonials';
 import ReviewsCarousel from './components/ReviewsCarousel';
 import { TravelPackage } from './types';
 import InclusionsRow from './components/InclusionsRow';
+import PackageCarousel from './components/PackageCarousel';
 
 import logoWhite from "./assets/logo white.png";
 
-import { 
-  Heart, 
-  Compass, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Clock, 
-  ShieldCheck, 
-  Facebook, 
-  Instagram, 
-  Twitter 
+
+import img1 from "./assets/images/Top-places-to-visit-in-Kashmir-in-July-2026-Dal-Lake-with-lush-green-mountains-and-shikaras-scaled.png";
+import img2 from "./assets/images/1319637_720.jpg";
+import img3 from "./assets/images/TRAKKING.jpg";
+
+import {
+  Heart,
+  Compass,
+  MapPin,
+  Phone,
+  Mail,
+  Clock,
+  ShieldCheck,
+  Facebook,
+  Instagram,
+  Twitter
 } from 'lucide-react';
 
 
@@ -34,7 +39,6 @@ function AppContent() {
   const { footerSettings, siteBrandSettings } = useData();
   const [activeTab, setActiveTab] = useState('home');
   const [selectedPackage, setSelectedPackage] = useState<TravelPackage | null>(null);
-  const [adminOpen, setAdminOpen] = useState(false);
 
 
   // Search parameters managed in main view state
@@ -42,6 +46,9 @@ function AppContent() {
   const [searchCategory, setSearchCategory] = useState('all');
 
   const { packages, videoTestimonials, reviews } = useData();
+
+  const handleSharePackageUrl = (pkg: TravelPackage) => `/package/${pkg.id}`;
+
 
   // Quick navigation helpers
   const handleSelectPackage = (pkg: TravelPackage) => {
@@ -59,16 +66,15 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-slate-50/20 text-slate-800 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-950">
-      
+
       {/* 1. Global Navigation Bar */}
-      <Navbar 
-        activeTab={activeTab} 
+      <Navbar
+        activeTab={activeTab}
         setActiveTab={(tab) => {
           setActiveTab(tab);
           setSelectedPackage(null); // Reset package selection on tab switch
           window.scrollTo({ top: 0, behavior: 'instant' });
         }}
-        openAdminPanel={() => setAdminOpen(true)}
       />
 
       {/* 2. Page Content Renderers under active tabs */}
@@ -76,9 +82,9 @@ function AppContent() {
         {activeTab === 'home' && (
           <div className="animate-fade-in">
             {/* Elegant Hero header with search engine */}
-            <Hero 
-              onSearch={handleHeroSearch} 
-              setActiveTab={setActiveTab} 
+            <Hero
+              onSearch={handleHeroSearch}
+              setActiveTab={setActiveTab}
             />
 
             {/* 1. Category Section */}
@@ -108,7 +114,7 @@ function AppContent() {
                   >
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors z-10" />
                     <img
-                      src="https://images.pexels.com/photos/1619317/pexels-photo-1619317.jpeg?auto=compress&cs=tinysrgb&w=600"
+                      src={img1}
                       alt="Domestic Tours"
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
@@ -133,7 +139,7 @@ function AppContent() {
                   >
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors z-10" />
                     <img
-                      src="https://images.pexels.com/photos/1254365/pexels-photo-1254365.jpeg?auto=compress&cs=tinysrgb&w=600"
+                      src={img2}
                       alt="International Tours"
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
@@ -158,7 +164,7 @@ function AppContent() {
                   >
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors z-10" />
                     <img
-                      src="https://images.pexels.com/photos/3645517/pexels-photo-3645517.jpeg?auto=compress&cs=tinysrgb&w=600"
+                      src={img3}
                       alt="Trekking Trails"
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       referrerPolicy="no-referrer"
@@ -173,10 +179,10 @@ function AppContent() {
               </div>
             </div>
 
-            {/* 2. Featured Packages Section (4 in a row, compact card sizes) */}
+            {/* 2. Featured Packages Carousel */}
             <div className="py-14 bg-slate-50/50 border-t border-slate-100">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
+
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-10">
                   <div>
                     <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-600 font-mono block mb-1">Featured Packages</span>
@@ -184,8 +190,8 @@ function AppContent() {
                       Handpicked Travel Packages
                     </h2>
                     <p className="text-slate-500 text-xs sm:text-sm mt-1">
-                    Discover our most popular holiday packages with comfortable stays, private transportation, sightseeing, and unforgettable local experiences.
-                  </p>
+                      Discover our most popular holiday packages with comfortable stays, private transportation, sightseeing, and unforgettable local experiences.
+                    </p>
                   </div>
                   <button
                     onClick={() => {
@@ -194,78 +200,25 @@ function AppContent() {
                       setSelectedPackage(null);
                       setActiveTab('packages');
                     }}
-                    className="text-xs sm:text-[13px] font-bold text-indigo-650 hover:text-indigo-750 hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-xs sm:text-[13px] font-bold text-indigo-650 hover:text-indigo-750 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
                   >
                     <span>View all packages ({packages.length})</span>
                     <span>→</span>
                   </button>
                 </div>
 
-                {/* Grid - 4 Curated Small Cards in a Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {packages.filter(p => p.featured).slice(0, 4).map((pkg) => (
-                    <div
-                      key={pkg.id}
-                      onClick={() => handleSelectPackage(pkg)}
-                      className="group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-xs hover:shadow-md hover:border-indigo-300 cursor-pointer active:scale-[0.99] transition-all duration-300 flex flex-col h-full"
-                    >
-                      <div className="aspect-[16/11] relative overflow-hidden bg-slate-100">
-                        <img
-                          src={pkg.image}
-                          alt={pkg.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute top-2 left-2">
-                          <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-white/95 text-indigo-650 rounded shadow-xs">
-                            ★ Featured
-                          </span>
-                        </div>
-                        
-                        <div className="absolute bottom-2 right-2 bg-indigo-600 text-white px-2.5 py-0.5 rounded-md shadow-xs">
-                          <span className="text-[13px] font-black">
-                            ₹{pkg.price.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="p-4 flex flex-col flex-grow">
-                        <p className="text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1 leading-none">
-                          <MapPin className="w-3 h-3 text-indigo-500 flex-shrink-0" />
-                          <span className="truncate">{pkg.location}</span>
-                        </p>
-                        
-                        <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight tracking-tight text-xs sm:text-sm mb-1.5 line-clamp-1">
-                          {pkg.title}
-                        </h3>
-                        
-                        <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-2">
-                          {pkg.description}
-                        </p>
-
-                        {/* Inclusions icons inside card */}
-                        <InclusionsRow inclusions={pkg.inclusions} />
-
-                        {/* View Details Actions row */}
-                        <div className="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400 font-bold font-mono">{pkg.duration.split(' ')[0]} Days Trip</span>
-                          <span className="text-indigo-600 font-bold flex items-center gap-0.5 group-hover:underline">
-                            <span>View Details</span>
-                            <span>→</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <PackageCarousel
+                  packages={packages.filter(p => p.featured)}
+                  variant="featured"
+                />
 
               </div>
             </div>
 
-            {/* 3. Most Popular Packages Section */}
+            {/* 3. Best Selling Packages Carousel */}
             <div className="py-14 bg-white border-t border-slate-100">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
+
                 <div className="text-center max-w-2xl mx-auto mb-10">
                   <span className="text-xs uppercase font-extrabold tracking-widest text-indigo-650 font-mono block mb-1">Popular Packages</span>
                   <h2 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight">
@@ -276,65 +229,10 @@ function AppContent() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {packages.slice(packages.length - 3).map((pkg) => (
-                    <div
-                      key={pkg.id}
-                      onClick={() => handleSelectPackage(pkg)}
-                      className="group bg-slate-50/50 rounded-2xl border border-slate-200/50 overflow-hidden shadow-sm hover:shadow-md hover:border-indigo-300 cursor-pointer active:scale-[0.99] transition-all duration-300 flex flex-col h-full"
-                    >
-                      <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
-                        <img
-                          src={pkg.image}
-                          alt={pkg.title}
-                          className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute top-3 left-3 flex gap-1.5">
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase bg-slate-900 text-amber-400 rounded-lg shadow-sm flex items-center gap-1">
-                            🔥 Bestseller
-                          </span>
-                          <span className="px-2.5 py-1 text-[9px] font-black uppercase bg-white/95 text-indigo-600 rounded-lg shadow-sm">
-                            9.9 Rating
-                          </span>
-                        </div>
-                        
-                        <div className="absolute bottom-3 right-3 bg-white/95 px-3 py-1 rounded-xl shadow-sm border border-slate-100">
-                          <span className="text-[15px] font-black text-indigo-600 leading-none block">
-                            ₹{pkg.price.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-[8px] text-slate-400 uppercase tracking-wider font-extrabold block text-right">Starts Here</span>
-                        </div>
-                      </div>
-
-                      <div className="p-5 flex flex-col flex-grow">
-                        <p className="text-[11px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-indigo-500" />
-                          <span>{pkg.location}</span>
-                        </p>
-                        
-                        <h3 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight tracking-tight text-base mb-2">
-                          {pkg.title}
-                        </h3>
-                        
-                        <p className="text-slate-500 text-xs leading-relaxed mb-3">
-                          {pkg.description}
-                        </p>
-
-                        <InclusionsRow inclusions={pkg.inclusions} />
-
-                        <div className="mt-auto pt-3 border-t border-slate-150/40 flex items-center justify-between text-xs">
-                          <span className="text-slate-600 font-bold">{pkg.duration}</span>
-                          <button
-                            className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
-                          >
-                            Book Custom Trip
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <PackageCarousel
+                  packages={packages}
+                  variant="bestseller"
+                />
 
               </div>
             </div>
@@ -346,7 +244,7 @@ function AppContent() {
                   Accredited & Affiliated Partners
                 </span>
               </div>
-              
+
               <div className="relative w-full overflow-hidden bg-white py-6 border-y border-slate-100/50">
                 {/* Horizontal Marquee Element */}
                 <div className="animate-marquee flex gap-16 md:gap-24 items-center">
@@ -388,7 +286,7 @@ function AppContent() {
 
                 {/* Video Testimonials + Text Reviews Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-                  
+
                   {/* Left Column: Video Testimonials in Vertical Reel Format */}
                   <div className="lg:col-span-5 min-h-[600px]">
                     <VideoTestimonials videos={videoTestimonials} />
@@ -449,13 +347,13 @@ function AppContent() {
           <div className="animate-fade-in">
             {selectedPackage ? (
               /* Enquire drill-down detailed page */
-              <PackageDetails 
-                pkg={selectedPackage} 
-                onBack={() => setSelectedPackage(null)} 
+              <PackageDetails
+                pkg={selectedPackage}
+                onBack={() => setSelectedPackage(null)}
               />
             ) : (
               /* Active filterable directory grid */
-              <Packages 
+              <Packages
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 searchCategory={searchCategory}
@@ -473,11 +371,13 @@ function AppContent() {
           </div>
         )}
 
+        {/* Gallery section hidden — uncomment when ready
         {activeTab === 'gallery' && (
           <div className="animate-fade-in">
             <Gallery />
           </div>
         )}
+        */}
 
         {activeTab === 'blog' && (
           <div className="animate-fade-in">
@@ -495,7 +395,7 @@ function AppContent() {
       {/* 3. Global Information Footer */}
       <footer className="bg-slate-900 text-slate-400 py-16 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-12 gap-10">
-          
+
           {/* Logo Brand information */}
           <div className="md:col-span-4 space-y-4">
             <img
@@ -503,7 +403,7 @@ function AppContent() {
               alt="ColorMyTrip"
               className="h-12 w-auto"
             />
-            
+
             <p className="text-xs sm:text-[13px] leading-relaxed text-slate-400">
               {footerSettings?.footer_description_text ||
                 'Your uncommerialized partner for pristine family vacations, Himalayan mountaineering summits, and exotic budget-friendly world explorations.'}
@@ -530,8 +430,8 @@ function AppContent() {
           <div className="md:col-span-3 space-y-3">
             <h4 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Navigate Directory</h4>
             <ul className="space-y-2 text-xs sm:text-[13px]">
-              {['Home', 'About Us', 'Packages', 'Gallery', 'Blog'].map((name, i) => {
-                const ids = ['home', 'about', 'packages', 'gallery', 'blog'];
+              {['Home', 'About Us', 'Packages', 'Blog'].map((name, i) => {
+                const ids = ['home', 'about', 'packages', 'blog'];
                 return (
                   <li key={i}>
                     <button
@@ -553,7 +453,7 @@ function AppContent() {
           {/* Operational Area Headquarters */}
           <div className="md:col-span-5 space-y-3 text-xs sm:text-[13px]">
             <h4 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Headquarters Location</h4>
-            
+
             <div className="space-y-2 text-slate-400">
               <p className="flex items-start gap-2 leading-relaxed">
                 <MapPin className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
@@ -562,7 +462,7 @@ function AppContent() {
                     'Sevoke Road, near PC Mittal Bus Stand, Siliguri, Darjeeling foothills district, West Bengal, India, 734001'}
                 </span>
               </p>
-              
+
               <p className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
                 <span>
@@ -594,21 +494,24 @@ function AppContent() {
             {footerSettings?.copyright_text || `© ${new Date().getFullYear()} ColorMyTrip Private Limited. Coordinated with certified guide licenses and local mountain rescue networks.`}
           </p>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAdminOpen(true)}
-            className="text-slate-500 hover:text-indigo-400 hover:underline transition-colors font-bold cursor-pointer"
-          >
-            Tour Administrator Portal
-          </button>
-        </div>
+          <div className="flex items-center gap-2">
+            <a
+              href="/admin"
+              className="text-slate-500 hover:text-indigo-400 hover:underline transition-colors font-bold cursor-pointer"
+            >
+              Tour Administrator Portal
+            </a>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href="/affiliate"
+              className="text-slate-500 hover:text-indigo-400 hover:underline transition-colors font-bold cursor-pointer"
+            >
+              Affiliate Portal
+            </a>
+          </div>
         </div>
       </footer>
-
-      {/* 4. Floating Overlay Administrative desk */}
-      {adminOpen && (
-        <AdminPanel onClose={() => setAdminOpen(false)} />
-      )}
 
     </div>
   );
