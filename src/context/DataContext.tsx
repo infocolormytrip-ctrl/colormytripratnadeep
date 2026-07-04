@@ -1181,7 +1181,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetch('/api/enquire', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEnquiry),
+        body: JSON.stringify({
+          ...newEnquiry,
+          duration: packages.find(p => p.id === newEnquiry.packageId)?.duration || 'Custom Plan',
+          logoUrl: siteBrandSettings?.site_logo_url || ''
+        }),
       });
     } catch (err) {
       console.warn('Backend email notification log request failed (it will still be saved to the database!):', err);

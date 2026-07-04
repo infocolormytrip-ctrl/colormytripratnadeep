@@ -11,7 +11,7 @@ function escapeHtml(input: string): string {
     .replaceAll("'", '&#039;');
 }
 
-// ─── BASE EMAIL LAYOUT ────────────────────────────────────────────────────────
+// ─── BASE EMAIL LAYOUT (FOR ADMIN) ───────────────────────────────────────────
 interface Brand {
   logoUrl?: string;
   brandName?: string;
@@ -105,7 +105,7 @@ function baseLayout(params: {
   `;
 }
 
-// ─── NEW ENQUIRY HTML EMAIL TEMPLATE ──────────────────────────────────────────
+// ─── NEW ENQUIRY HTML EMAIL TEMPLATE (FOR ADMIN) ──────────────────────────────
 export type AdminNewEnquiryData = {
   enquiryId: string;
   customerName: string;
@@ -167,6 +167,186 @@ export function adminNewEnquiryEmail(data: AdminNewEnquiryData): string {
   });
 }
 
+// ─── GUEST ACKNOWLEDGEMENT EMAIL TEMPLATE ──────────────────────────────────────
+interface GuestAcknowledgementData {
+  guestName: string;
+  destination: string;
+  travelDate: string;
+  duration: string;
+  travellers: string;
+  enquiryId: string;
+  logoUrl: string;
+}
+
+function getGuestAcknowledgementHtml(data: GuestAcknowledgementData): string {
+  const currentYear = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travel Enquiry Received</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f7fa;font-family:Arial,Helvetica,sans-serif;color:#333333;">
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fa;padding:30px 15px;">
+<tr>
+<td align="center">
+
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
+
+    <!-- Header -->
+    <tr>
+        <td align="center" style="background:#0f4c81;padding:35px 20px;">
+            <img src="${escapeHtml(data.logoUrl)}" alt="ColorMyTrip" width="180" style="display:block;border:0;max-width:180px;">
+            <h1 style="margin:20px 0 5px;font-size:28px;color:#ffffff;font-weight:bold;">
+                Thank You!
+            </h1>
+            <p style="margin:0;font-size:16px;color:#dbefff;">
+                We've Successfully Received Your Enquiry
+            </p>
+        </td>
+    </tr>
+
+    <!-- Greeting -->
+    <tr>
+        <td style="padding:35px 40px 10px;">
+            <p style="margin:0 0 20px;font-size:16px;">
+                Dear <strong>${escapeHtml(data.guestName)}</strong>,
+            </p>
+
+            <p style="margin:0 0 18px;line-height:1.8;font-size:15px;">
+                Thank you for choosing <strong>ColorMyTrip</strong>!
+            </p>
+
+            <p style="margin:0 0 18px;line-height:1.8;font-size:15px;">
+                We have successfully received your travel enquiry and truly appreciate your interest in travelling with us.
+                Our travel experts are currently reviewing your request and will contact you shortly with the best itinerary,
+                pricing, and available options tailored to your requirements.
+            </p>
+        </td>
+    </tr>
+
+    <!-- Enquiry Details -->
+    <tr>
+        <td style="padding:10px 40px;">
+            <table width="100%" cellpadding="12" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:8px;background:#fafafa;">
+                <tr>
+                    <td colspan="2" style="background:#eef5fb;font-weight:bold;font-size:16px;">
+                        Your Enquiry Details
+                    </td>
+                </tr>
+
+                <tr>
+                    <td width="40%"><strong>Destination</strong></td>
+                    <td>${escapeHtml(data.destination)}</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Travel Date</strong></td>
+                    <td>${escapeHtml(data.travelDate)}</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Duration</strong></td>
+                    <td>${escapeHtml(data.duration)}</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Travellers</strong></td>
+                    <td>${escapeHtml(data.travellers)}</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Enquiry ID</strong></td>
+                    <td>${escapeHtml(data.enquiryId)}</td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+
+    <!-- Message -->
+    <tr>
+        <td style="padding:30px 40px 15px;">
+
+            <p style="margin:0 0 18px;line-height:1.8;font-size:15px;">
+                Our team usually responds within
+                <strong>2–6 business days</strong>.
+                During peak travel seasons, response times may be slightly longer, but rest assured that your enquiry is important to us.
+            </p>
+
+            <p style="margin:0 0 12px;font-weight:bold;font-size:16px;">
+                Why Travel with ColorMyTrip?
+            </p>
+
+            <ul style="padding-left:20px;margin:0 0 20px;line-height:1.9;font-size:15px;">
+                <li>Personalized travel itineraries</li>
+                <li>Handpicked hotels & homestays</li>
+                <li>Honeymoon, family & group tours</li>
+                <li>Offbeat destinations & unique experiences</li>
+                <li>Transparent pricing with dedicated travel support</li>
+            </ul>
+
+            <p style="margin:0 0 25px;line-height:1.8;font-size:15px;">
+                If you have any additional questions or would like to update your travel requirements,
+                simply reply to this email or connect with us on WhatsApp.
+            </p>
+
+        </td>
+    </tr>
+
+    <!-- CTA -->
+    <tr>
+        <td align="center" style="padding:10px 40px 40px;">
+            <a href="https://wa.me/919748345171"
+               style="background:#25D366;color:#ffffff;text-decoration:none;padding:14px 34px;border-radius:6px;font-size:16px;font-weight:bold;display:inline-block;">
+                Chat on WhatsApp
+            </a>
+        </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+        <td align="center" style="background:#f8f9fb;padding:30px;border-top:1px solid #ececec;">
+
+            <h3 style="margin:0;font-size:18px;color:#0f4c81;">
+                Team ColorMyTrip
+            </h3>
+
+            <p style="margin:8px 0 18px;color:#666666;font-size:14px;">
+                Travel with Soul
+            </p>
+
+            <p style="margin:6px 0;font-size:14px;">
+                📞 +91 97483 45171
+            </p>
+
+            <p style="margin:6px 0;font-size:14px;">
+                ✉️ info.colormytrip@gmail.com
+            </p>
+
+            <p style="margin:6px 0 20px;font-size:14px;">
+                🌐 www.colormytrip.in
+            </p>
+
+            <p style="margin:0;font-size:12px;color:#999999;">
+                © ${currentYear} ColorMyTrip. All Rights Reserved.
+            </p>
+
+        </td>
+    </tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>`;
+}
+
 // ─── API HANDLER ─────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS configuration
@@ -214,9 +394,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     id,
     affiliateEmail,
     affiliateName,
-    promoCode
+    promoCode,
+    duration,
+    logoUrl
   } = req.body;
 
+  // Render Admin Template HTML
   const emailHtml = adminNewEnquiryEmail({
     enquiryId: id || 'N/A',
     customerName: name,
@@ -227,6 +410,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     travelers: travelers ? Number(travelers) : undefined,
     message: message || undefined,
     packageTitle: destination
+  });
+
+  // Render Guest Template HTML
+  // Fallback logo URL (using the github-hosted white logo, which fits the dark blue header perfectly)
+  const finalLogoUrl = logoUrl || 'https://raw.githubusercontent.com/infocolormytrip-ctrl/colormytripratnadeep/main/src/assets/logo%20white.png';
+  const guestEmailHtml = getGuestAcknowledgementHtml({
+    guestName: name,
+    destination: destination,
+    travelDate: travelDate || 'Flexible / To Be Decided',
+    duration: duration || 'Customized Plan',
+    travellers: travelers ? `${travelers} Pax` : '1 Pax',
+    enquiryId: id || 'N/A',
+    logoUrl: finalLogoUrl
   });
 
   console.log('========================================================================');
@@ -247,7 +443,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Attempt real SMTP dispatch
   if (smtpUser && smtpPass) {
     try {
-      // Send email to Admin
+      // 1. Send email to Admin
       await transporter.sendMail({
         from: `"ColorMyTrip Notifications" <${smtpUser}>`,
         to: adminEmail,
@@ -256,7 +452,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
       console.log(`💌 Admin notification dispatched to ${adminEmail}`);
 
-      // Send email to Affiliate if assigned
+      // 2. Send confirmation email to the Guest/Customer
+      if (email && email.trim().length > 0) {
+        await transporter.sendMail({
+          from: `"ColorMyTrip" <${smtpUser}>`,
+          to: email.trim(),
+          subject: `✈️ ColorMyTrip Enquiry Received! - ID: ${id || 'N/A'}`,
+          html: guestEmailHtml,
+        });
+        console.log(`💌 Guest acknowledgement dispatched to ${email}`);
+      }
+
+      // 3. Send email to Affiliate if assigned
       if (affiliateEmail && affiliateEmail.trim().length > 0) {
         await transporter.sendMail({
           from: `"ColorMyTrip Notifications" <${smtpUser}>`,
