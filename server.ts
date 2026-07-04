@@ -135,6 +135,47 @@ async function startServer() {
     }
   });
 
+  // API Route - Direct Custom Email Send (Local Dev Support)
+  app.post('/api/send-custom-email', async (req, res) => {
+    const { to, subject, html, attachments } = req.body;
+
+    if (!to || !subject || !html) {
+      return res.status(400).json({ error: 'Missing to, subject, or html in request body.' });
+    }
+
+    if (smtpUser && smtpPass) {
+      try {
+        const formattedAttachments = Array.isArray(attachments)
+          ? attachments.map((att: any) => ({
+              filename: att.filename,
+              content: Buffer.from(att.content, 'base64'),
+              contentType: att.contentType,
+            }))
+          : [];
+
+        await transporter.sendMail({
+          from: `"ColorMyTrip" <${smtpUser}>`,
+          to,
+          subject,
+          html,
+          attachments: formattedAttachments,
+        });
+
+        console.log(`💌 Custom email sent successfully to ${to}`);
+        return res.status(200).json({ success: true, message: 'Email sent successfully.' });
+      } catch (err) {
+        console.error('❌ Custom email dispatch failed:', err);
+        return res.status(500).json({ success: false, error: 'SMTP dispatch failed.', details: String(err) });
+      }
+    } else {
+      console.log('⚠️ SMTP Credentials missing. Custom email logged to console successfully.');
+      return res.status(200).json({
+        success: true,
+        message: 'Email simulated successfully (SMTP credentials missing).'
+      });
+    }
+  });
+
   // Health check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', time: new Date() });
