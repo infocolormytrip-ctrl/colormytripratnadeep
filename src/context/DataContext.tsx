@@ -115,6 +115,7 @@ interface DataContextType {
   deleteCustomTemplate: (id: string) => Promise<void>;
   scheduleEmail: (email: Omit<ScheduledEmail, 'id' | 'createdAt' | 'status'>) => Promise<ScheduledEmail>;
   deleteScheduledEmail: (id: string) => Promise<void>;
+  updateScheduledEmailStatus: (id: string, status: 'sent' | 'failed', error?: string) => Promise<void>;
   adminUser: User | null;
   isAdminLoggedIn: boolean;
   role: Role;
@@ -2241,6 +2242,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return newEmail;
   };
 
+  const updateScheduledEmailStatus = async (id: string, status: 'sent' | 'failed', error?: string): Promise<void> => {
+    if (isFirebaseActive && db) {
+      try {
+        await updateDoc(doc(db, 'scheduledEmails', id), {
+          status,
+          sentAt: status === 'sent' ? new Date().toISOString() : null,
+          error: error || null
+        });
+        setScheduledEmails((prev) => {
+          const list = prev.map(e => e.id === id ? {
+            ...e,
+            status,
+            sentAt: status === 'sent' ? new Date().toISOString() : undefined,
+            error: error || undefined
+          } : e);
+          localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, 'scheduledEmails');
+      }
+    } else {
+      setScheduledEmails((prev) => {
+        const list = prev.map(e => e.id === id ? {
+          ...e,
+          status,
+          sentAt: status === 'sent' ? new Date().toISOString() : undefined,
+          error: error || undefined
+        } : e);
+        localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+        return list;
+      });
+    }
+  };
+
   const deleteScheduledEmail = async (id: string): Promise<void> => {
     if (isFirebaseActive && db) {
       try {
@@ -2775,6 +2811,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteCustomTemplate,
         scheduleEmail,
         deleteScheduledEmail,
+        updateScheduledEmailStatus,
         createOffer,
         updateOffer,
         deleteOffer,

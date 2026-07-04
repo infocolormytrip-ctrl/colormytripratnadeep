@@ -249,6 +249,7 @@ interface EmailsPanelProps {
   deleteCustomTemplate: (id: string) => Promise<void>;
   scheduleEmail: (e: Omit<ScheduledEmail, 'id' | 'createdAt' | 'status'>) => Promise<ScheduledEmail>;
   deleteScheduledEmail: (id: string) => Promise<void>;
+  updateScheduledEmailStatus: (id: string, status: 'sent' | 'failed', error?: string) => Promise<void>;
   showToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, msg?: string) => void;
   packages: TravelPackage[];
 }
@@ -261,6 +262,7 @@ function EmailsPanel({
   deleteCustomTemplate,
   scheduleEmail,
   deleteScheduledEmail,
+  updateScheduledEmailStatus,
   showToast,
   packages,
 }: EmailsPanelProps) {
@@ -281,6 +283,7 @@ function EmailsPanel({
   const [newTmplSubject, setNewTmplSubject] = useState('');
   const [newTmplHtml, setNewTmplHtml] = useState('');
   const [savingTmpl, setSavingTmpl] = useState(false);
+  const [runningQueue, setRunningQueue] = useState(false);
 
   const selectedEnquiry = useMemo(() => enquiries.find(e => e.id === selectedEnqId), [selectedEnqId, enquiries]);
 
@@ -597,6 +600,55 @@ function EmailsPanel({
     }
   };
 
+  const handleRunQueueManually = async () => {
+    const nowStr = new Date().toISOString();
+    const pending = scheduledEmails.filter(e => e.status === 'pending' && e.sendAt <= nowStr);
+
+    if (pending.length === 0) {
+      showToast('info', 'Queue Empty', 'No pending scheduled emails are due for delivery yet.');
+      return;
+    }
+
+    if (!confirm(`Process and dispatch ${pending.length} pending email(s) immediately?`)) return;
+
+    setRunningQueue(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const email of pending) {
+      try {
+        const response = await fetch('/api/send-custom-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: email.to,
+            subject: email.subject,
+            html: email.html,
+            attachments: email.attachments && email.attachments.length ? email.attachments : undefined,
+          }),
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+          await updateScheduledEmailStatus(email.id, 'sent');
+          successCount++;
+        } else {
+          await updateScheduledEmailStatus(email.id, 'failed', result.error || 'SMTP delivery rejected.');
+          failCount++;
+        }
+      } catch (err) {
+        await updateScheduledEmailStatus(email.id, 'failed', String(err));
+        failCount++;
+      }
+    }
+
+    setRunningQueue(false);
+    showToast(
+      failCount === 0 ? 'success' : 'warning',
+      'Execution Complete',
+      `Processed ${successCount + failCount} email(s). Sent: ${successCount}, Failed: ${failCount}`
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header and Sub-Tabs */}
@@ -828,7 +880,19 @@ function EmailsPanel({
       {/* Scheduled Tab Layout */}
       {tabView === 'scheduled' && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Pending Scheduled Queue</h4>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 pb-4 border-b border-slate-800">
+            <div>
+              <h4 className="text-xs font-black text-white">Pending Scheduled Queue</h4>
+              <p className="text-[10px] text-slate-500 mt-0.5">Vercel Hobby crons run daily. Run manually below at any time.</p>
+            </div>
+            <button
+              onClick={handleRunQueueManually}
+              disabled={runningQueue}
+              className="px-4 py-2 bg-indigo-650 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shrink-0"
+            >
+              {runningQueue ? 'Processing...' : 'Run Queue Dispatcher ⚡'}
+            </button>
+          </div>
           {scheduledEmails.filter(e => e.status === 'pending').length === 0 ? (
             <div className="text-center p-12 text-slate-500 text-sm">No emails currently scheduled.</div>
           ) : (
@@ -1040,6 +1104,7 @@ export default function AdminPanel() {
     deleteCustomTemplate,
     scheduleEmail,
     deleteScheduledEmail,
+    updateScheduledEmailStatus,
 
     // CMS settings
     footerSettings,
@@ -3455,6 +3520,7 @@ export default function AdminPanel() {
                   deleteCustomTemplate={deleteCustomTemplate}
                   scheduleEmail={scheduleEmail}
                   deleteScheduledEmail={deleteScheduledEmail}
+                  updateScheduledEmailStatus={updateScheduledEmailStatus}
                   showToast={showToast}
                   packages={packages}
                 />
