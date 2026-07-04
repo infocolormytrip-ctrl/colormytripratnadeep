@@ -22,8 +22,9 @@ function isAdmin() {
         (
             request.auth.token.email == "info.colormytrip@gmail.com" ||
             (
-                userDoc().data.role == "admin" &&
-                userDoc().data.status == "active"
+                exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" &&
+                get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == "active"
             )
         );
 }
