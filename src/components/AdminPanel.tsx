@@ -422,13 +422,28 @@ function EmailsPanel({
       const ct = customTemplates.find(t => t.id === customId);
       if (ct) {
         let parsedHtml = ct.html;
+        let parsedSubject = ct.subject;
         if (selectedEnquiry) {
-          parsedHtml = parsedHtml
-            .replaceAll('{{guestName}}', selectedEnquiry.name)
-            .replaceAll('{{destination}}', selectedEnquiry.destination)
-            .replaceAll('{{enquiryId}}', selectedEnquiry.id);
+          const duration = packages.find(p => p.id === selectedEnquiry.packageId)?.duration || 'Custom Plan';
+          const travelersText = selectedEnquiry.travelers ? `${selectedEnquiry.travelers} Pax` : '1 Pax';
+          
+          const replacer = (text: string) => {
+            return text
+              .replaceAll('{{guestName}}', selectedEnquiry.name || '')
+              .replaceAll('{{destination}}', selectedEnquiry.destination || '')
+              .replaceAll('{{enquiryId}}', selectedEnquiry.id || '')
+              .replaceAll('{{guestEmail}}', selectedEnquiry.email || '')
+              .replaceAll('{{guestPhone}}', selectedEnquiry.phone || '')
+              .replaceAll('{{travelDate}}', selectedEnquiry.travelDate || '')
+              .replaceAll('{{travelers}}', travelersText)
+              .replaceAll('{{duration}}', duration)
+              .replaceAll('{{message}}', selectedEnquiry.message || '');
+          };
+
+          parsedHtml = replacer(parsedHtml);
+          parsedSubject = replacer(parsedSubject);
         }
-        setEmailSubject(ct.subject);
+        setEmailSubject(parsedSubject);
         setEmailBody(parsedHtml);
       }
     } else {
@@ -851,7 +866,7 @@ function EmailsPanel({
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-[11px] font-bold text-slate-400">Email HTML Body Content *</label>
-                <span className="text-[9px] font-mono text-indigo-400">Variable placeholders: {'{{guestName}}'}, {'{{destination}}'}, {'{{enquiryId}}'}</span>
+                <span className="text-[9px] font-mono text-indigo-400">Placeholders: {'{{guestName}}'}, {'{{destination}}'}, {'{{enquiryId}}'}, {'{{travelDate}}'}, {'{{travelers}}'}, {'{{duration}}'}</span>
               </div>
               <textarea
                 value={emailBody}
