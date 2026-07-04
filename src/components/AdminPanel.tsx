@@ -637,11 +637,11 @@ function EmailsPanel({
                 <select
                   value={selectedEnqId}
                   onChange={(e) => handleDropdownSelect(e.target.value)}
-                  className="w-full bg-slate-955 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
                 >
-                  <option value="">-- Choose Guest (Appends Email) --</option>
+                  <option value="" className="bg-slate-950 text-white">-- Choose Guest (Appends Email) --</option>
                   {enquiries.map((enq) => (
-                    <option key={enq.id} value={enq.id}>
+                    <option key={enq.id} value={enq.id} className="bg-slate-950 text-white">
                       {enq.name} ({enq.destination})
                     </option>
                   ))}
@@ -675,16 +675,16 @@ function EmailsPanel({
                   onChange={(e) => setSelectedTmplKey(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
                 >
-                  <optgroup label="Default System Templates">
-                    <option value="ack">Inquiry Acknowledgement Template</option>
-                    <option value="pdf-pack">Custom Itinerary PDF Carrier</option>
-                    <option value="pdf-inv">Booking Confirmation & Invoice Carrier</option>
-                    <option value="review">Google Review Request Carrier</option>
+                  <optgroup label="Default System Templates" className="bg-slate-950 text-white">
+                    <option value="ack" className="bg-slate-950 text-white">Inquiry Acknowledgement Template</option>
+                    <option value="pdf-pack" className="bg-slate-950 text-white">Custom Itinerary PDF Carrier</option>
+                    <option value="pdf-inv" className="bg-slate-950 text-white">Booking Confirmation & Invoice Carrier</option>
+                    <option value="review" className="bg-slate-950 text-white">Google Review Request Carrier</option>
                   </optgroup>
                   {customTemplates.length > 0 && (
-                    <optgroup label="Custom Uploaded Templates">
+                    <optgroup label="Custom Uploaded Templates" className="bg-slate-950 text-white">
                       {customTemplates.map((t) => (
-                        <option key={t.id} value={`custom-${t.id}`}>
+                        <option key={t.id} value={`custom-${t.id}`} className="bg-slate-950 text-white">
                           {t.name}
                         </option>
                       ))}
