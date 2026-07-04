@@ -103,6 +103,8 @@ interface DataContextType {
   markNotificationAsRead: (id: string) => Promise<void>;
   markAllNotificationsAsRead: (userType: 'admin' | 'affiliate', affId?: string) => Promise<void>;
   reviews: Review[];
+  addReview: (review: Omit<Review, 'id' | 'createdAt'>) => Promise<Review>;
+  deleteReview: (id: string) => Promise<void>;
   videoTestimonials: VideoTestimonial[];
   offers: OfferMarqueeItem[];
   adminUser: User | null;
@@ -260,7 +262,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [commissions, setCommissions] = useState<CommissionRecord[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [reviews] = useState<Review[]>(initialReviews);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [videoTestimonials, setVideoTestimonials] = useState<VideoTestimonial[]>([]);
   const [offers, setOffers] = useState<OfferMarqueeItem[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
@@ -553,10 +555,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Firestore videoTestimonials fetch error, falling back to local storage:', error);
           loadVideosLocal();
         }
+
+        // Reviews collection
+        try {
+          const reviewsCol = collection(db, 'reviews');
+          const reviewsSnap = await getDocs(reviewsCol);
+          if (reviewsSnap.empty && !isSeeded && (role === 'admin' || bypassAdmin)) {
+            for (const r of initialReviews) {
+              const { id, ...data } = r;
+              await addDoc(collection(db, 'reviews'), { ...data });
+            }
+            const updatedSnap = await getDocs(reviewsCol);
+            const list = updatedSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Review));
+            setReviews(list);
+            localStorage.setItem('cmt_reviews', JSON.stringify(list));
+          } else {
+            const list = reviewsSnap.empty ? [] : reviewsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Review));
+            setReviews(list);
+            localStorage.setItem('cmt_reviews', JSON.stringify(list));
+          }
+        } catch (error) {
+          console.error('Firestore reviews fetch error, falling back to local storage:', error);
+          loadReviewsLocal();
+        }
       } else {
         loadPackagesLocal();
         loadBlogsLocal();
         loadVideosLocal();
+        loadReviewsLocal();
       }
     };
 
@@ -590,6 +616,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       localStorage.setItem('cmt_videoTestimonials', JSON.stringify(initialVideoTestimonials));
       setVideoTestimonials(initialVideoTestimonials);
+    }
+  };
+
+  const loadReviewsLocal = () => {
+    const stored = localStorage.getItem('cmt_reviews');
+    if (stored) {
+      setReviews(JSON.parse(stored));
+    } else {
+      localStorage.setItem('cmt_reviews', JSON.stringify(initialReviews));
+      setReviews(initialReviews);
     }
   };
 
@@ -2004,6 +2040,62 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ── Reviews CRUD ──────────────────────────────────────────────
+  const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>): Promise<Review> => {
+    const newReview: Review = {
+      ...reviewData,
+      id: `rev-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    if (isFirebaseActive && db) {
+      try {
+        const docRef = await addDoc(collection(db, 'reviews'), {
+          name: newReview.name,
+          rating: newReview.rating,
+          comment: newReview.comment,
+          source: newReview.source,
+          createdAt: newReview.createdAt,
+        });
+        newReview.id = docRef.id;
+        setReviews((prev) => {
+          const list = [newReview, ...prev];
+          localStorage.setItem('cmt_reviews', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'reviews');
+      }
+    } else {
+      const stored = localStorage.getItem('cmt_reviews');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(newReview);
+      localStorage.setItem('cmt_reviews', JSON.stringify(list));
+      setReviews(list);
+    }
+
+    return newReview;
+  };
+
+  const deleteReview = async (id: string): Promise<void> => {
+    if (isFirebaseActive && db) {
+      try {
+        await deleteDoc(doc(db, 'reviews', id));
+        setReviews((prev) => {
+          const list = prev.filter((r) => r.id !== id);
+          localStorage.setItem('cmt_reviews', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `reviews/${id}`);
+      }
+    } else {
+      const list = reviews.filter((r) => r.id !== id);
+      localStorage.setItem('cmt_reviews', JSON.stringify(list));
+      setReviews(list);
+    }
+  };
+
   const createOffer = async (offerData: Omit<OfferMarqueeItem, 'id'>): Promise<OfferMarqueeItem> => {
     const newOffer: OfferMarqueeItem = {
       ...offerData,
@@ -2511,6 +2603,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteBlog,
         addVideoTestimonial,
         deleteVideoTestimonial,
+        addReview,
+        deleteReview,
         createOffer,
         updateOffer,
         deleteOffer,

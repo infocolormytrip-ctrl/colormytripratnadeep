@@ -144,6 +144,7 @@ export interface Review {
   rating: number;
   comment: string;
   source: string;
+  createdAt?: string;
 }
 
 export interface VideoTestimonial {

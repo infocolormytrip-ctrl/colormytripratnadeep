@@ -21,8 +21,220 @@ import {
   Palette,
   Timer,
   Link2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Star,
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
+import { Review } from '../types';
+
+// ─── Reviews Panel Sub-component ──────────────────────────────────────────────
+interface ReviewsPanelProps {
+  reviews: Review[];
+  addReview: (r: Omit<Review, 'id' | 'createdAt'>) => Promise<Review>;
+  deleteReview: (id: string) => Promise<void>;
+  showToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, msg?: string) => void;
+}
+
+function ReviewsPanel({ reviews, addReview, deleteReview, showToast }: ReviewsPanelProps) {
+  const [showForm, setShowForm] = React.useState(false);
+  const [rName, setRName] = React.useState('');
+  const [rRating, setRRating] = React.useState(5);
+  const [rSource, setRSource] = React.useState('Google Review');
+  const [rComment, setRComment] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [hoverStar, setHoverStar] = React.useState(0);
+
+  const resetForm = () => {
+    setRName(''); setRRating(5); setRSource('Google Review'); setRComment('');
+    setShowForm(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rName.trim() || !rComment.trim()) {
+      showToast('error', 'Missing fields', 'Name and review text are required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await addReview({ name: rName.trim(), rating: rRating, source: rSource, comment: rComment.trim() });
+      showToast('success', 'Review Added', `"${rName.trim()}" has been published.`);
+      resetForm();
+    } catch {
+      showToast('error', 'Failed to add review', 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Delete review by "${name}"? This cannot be undone.`)) return;
+    try {
+      await deleteReview(id);
+      showToast('success', 'Review Deleted', `Review by "${name}" removed.`);
+    } catch {
+      showToast('error', 'Delete failed', 'Please try again.');
+    }
+  };
+
+  const sources = ['Google Review', 'Facebook', 'Verified Customer', 'TripAdvisor', 'Instagram', 'WhatsApp'];
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-black text-white">Written Reviews</h3>
+          <p className="text-slate-400 text-xs mt-0.5">Manage customer reviews displayed on the website ({reviews.length} total)</p>
+        </div>
+        <button
+          onClick={() => setShowForm(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          Add Review
+        </button>
+      </div>
+
+      {/* Add Review Modal */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-indigo-950/60 to-slate-900">
+              <div>
+                <h4 className="text-sm font-black text-white">Add Customer Review</h4>
+                <p className="text-slate-400 text-xs">This review will appear on the website immediately</p>
+              </div>
+              <button onClick={resetForm} className="text-slate-400 hover:text-white transition-colors p-1 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Customer Name *</label>
+                <input
+                  type="text"
+                  value={rName}
+                  onChange={(e) => setRName(e.target.value)}
+                  placeholder="e.g. Anirban Sen, Kolkata"
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm px-3 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+                  required
+                />
+              </div>
+
+              {/* Star Rating */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-2">Rating *</label>
+                <div className="flex items-center gap-1">
+                  {[1,2,3,4,5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setRRating(s)}
+                      onMouseEnter={() => setHoverStar(s)}
+                      onMouseLeave={() => setHoverStar(0)}
+                      className="cursor-pointer transition-transform hover:scale-110"
+                    >
+                      <Star className={`w-7 h-7 transition-colors ${s <= (hoverStar || rRating) ? 'fill-amber-400 text-amber-400' : 'text-slate-600'}`} />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-amber-400 font-bold">{rRating}/5</span>
+                </div>
+              </div>
+
+              {/* Source */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Source / Platform *</label>
+                <div className="flex flex-wrap gap-2">
+                  {sources.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setRSource(s)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
+                        rSource === s
+                          ? 'bg-indigo-600 border-indigo-500 text-white'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Review Text */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Review Text *</label>
+                <textarea
+                  value={rComment}
+                  onChange={(e) => setRComment(e.target.value)}
+                  rows={4}
+                  placeholder="Write the customer review here..."
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm px-3 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2 border-t border-slate-800">
+                <button type="button" onClick={resetForm} className="flex-1 px-4 py-2.5 bg-slate-800 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-bold cursor-pointer">Cancel</button>
+                <button type="submit" disabled={saving} className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-60">
+                  {saving ? 'Publishing...' : 'Publish Review'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reviews List */}
+      {reviews.length === 0 ? (
+        <div className="p-16 text-center bg-slate-900 rounded-2xl border border-slate-800">
+          <MessageSquare className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium text-sm">No reviews yet. Add your first customer review!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {reviews.map((rev) => (
+            <div key={rev.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative hover:border-slate-700 transition-colors group">
+              {/* Delete button */}
+              <button
+                onClick={() => handleDelete(rev.id, rev.name)}
+                className="absolute top-3 right-3 p-1.5 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all cursor-pointer rounded-lg hover:bg-slate-800"
+                aria-label="Delete review"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              {/* Stars */}
+              <div className="flex items-center gap-0.5 mb-3">
+                {[1,2,3,4,5].map((s) => (
+                  <Star key={s} className={`w-3.5 h-3.5 ${s <= rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'}`} />
+                ))}
+              </div>
+
+              {/* Comment */}
+              <p className="text-slate-300 text-xs sm:text-[13px] leading-relaxed mb-4 italic line-clamp-4">
+                "{rev.comment}"
+              </p>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                <div>
+                  <p className="text-white font-bold text-xs">{rev.name}</p>
+                  {rev.createdAt && <p className="text-slate-500 text-[10px] mt-0.5">{rev.createdAt}</p>}
+                </div>
+                <span className="px-2 py-0.5 bg-slate-800 text-slate-400 text-[10px] font-bold rounded-md border border-slate-700">
+                  {rev.source}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 
 export default function AdminPanel() {
@@ -36,6 +248,9 @@ export default function AdminPanel() {
     offers,
     affiliates,
     promoCodes,
+    reviews,
+    addReview,
+    deleteReview,
     isAdminLoggedIn, 
     isFirebaseActive, 
     createPackage, 
@@ -74,7 +289,7 @@ export default function AdminPanel() {
   } = useData();
 
   // Active view tabs
-  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website'>('enquiries');
+  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website' | 'reviews'>('enquiries');
   
   // Status filters for enquiries
   const [enqFilter, setEnqFilter] = useState<string>('all');
@@ -89,7 +304,7 @@ export default function AdminPanel() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && ['enquiries', 'packages', 'blogs', 'offers', 'videos', 'promoCodes', 'website'].includes(tab)) {
+    if (tab && ['enquiries', 'packages', 'blogs', 'offers', 'videos', 'promoCodes', 'website', 'reviews'].includes(tab)) {
       setPanelTab(tab as any);
     }
   }, []);
@@ -771,6 +986,23 @@ export default function AdminPanel() {
                   panelTab === 'videos' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-350'
                 }`}>
                   {videoTestimonials.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setPanelTab('reviews')}
+                className={`w-full text-left px-4 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                  panelTab === 'reviews'
+                    ? 'bg-indigo-655 text-white shadow-md shadow-indigo-900/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-5 h-5 shrink-0" />
+                <span>Written Reviews</span>
+                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  panelTab === 'reviews' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-350'
+                }`}>
+                  {reviews.length}
                 </span>
               </button>
 
@@ -2420,6 +2652,15 @@ export default function AdminPanel() {
                 </div>
               )}
 
+              {panelTab === 'reviews' && (
+                <ReviewsPanel
+                  reviews={reviews}
+                  addReview={addReview}
+                  deleteReview={deleteReview}
+                  showToast={showToast}
+                />
+              )}
+
             </div>
 
           </div>
@@ -2429,4 +2670,3 @@ export default function AdminPanel() {
     </div>
   );
 }
-
