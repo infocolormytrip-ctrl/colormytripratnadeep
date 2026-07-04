@@ -265,6 +265,7 @@ function EmailsPanel({
   packages,
 }: EmailsPanelProps) {
   const [selectedEnqId, setSelectedEnqId] = useState('');
+  const [recipientEmails, setRecipientEmails] = useState('');
   const [selectedTmplKey, setSelectedTmplKey] = useState('ack');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -282,6 +283,20 @@ function EmailsPanel({
   const [savingTmpl, setSavingTmpl] = useState(false);
 
   const selectedEnquiry = useMemo(() => enquiries.find(e => e.id === selectedEnqId), [selectedEnqId, enquiries]);
+
+  const handleDropdownSelect = (enqId: string) => {
+    setSelectedEnqId(enqId);
+    const enq = enquiries.find(e => e.id === enqId);
+    if (enq && enq.email) {
+      setRecipientEmails((prev) => {
+        const current = prev.split(',').map((s) => s.trim()).filter(Boolean);
+        if (!current.includes(enq.email)) {
+          current.push(enq.email);
+        }
+        return current.join(', ');
+      });
+    }
+  };
 
   // Default templates pre-population helper
   const getTemplateContent = useCallback((key: string, enq?: Enquiry) => {
@@ -505,8 +520,8 @@ function EmailsPanel({
 
   const handleSendOrSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEnquiry) {
-      showToast('error', 'Validation Error', 'Please select a guest enquiry.');
+    if (!recipientEmails.trim()) {
+      showToast('error', 'Validation Error', 'Please enter at least one recipient email.');
       return;
     }
     if (!emailSubject.trim() || !emailBody.trim()) {
@@ -528,7 +543,7 @@ function EmailsPanel({
       setSending(true);
       try {
         await scheduleEmail({
-          to: selectedEnquiry.email,
+          to: recipientEmails.trim(),
           subject: emailSubject.trim(),
           html: emailBody,
           sendAt: new Date(scheduleDateTime).toISOString(),
@@ -551,7 +566,7 @@ function EmailsPanel({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            to: selectedEnquiry.email,
+            to: recipientEmails.trim(),
             subject: emailSubject.trim(),
             html: emailBody,
             attachments: attachments.length ? attachments : undefined,
@@ -559,7 +574,7 @@ function EmailsPanel({
         });
         const result = await response.json();
         if (response.ok && result.success) {
-          showToast('success', 'Email Dispatched', `Direct email delivered to ${selectedEnquiry.email}.`);
+          showToast('success', 'Email Dispatched', `Direct email delivered to ${recipientEmails.trim()}.`);
           setAttachments([]);
         } else {
           showToast('error', 'Send Failed', result.error || 'Server rejected SMTP delivery.');
@@ -617,14 +632,14 @@ function EmailsPanel({
 
             {/* Target Enquiry Select */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Select Guest / Enquiry *</label>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Select Guest / Enquiry</label>
               <div className="relative">
                 <select
                   value={selectedEnqId}
-                  onChange={(e) => setSelectedEnqId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                  onChange={(e) => handleDropdownSelect(e.target.value)}
+                  className="w-full bg-slate-955 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
                 >
-                  <option value="">-- Choose Guest (Destination) --</option>
+                  <option value="">-- Choose Guest (Appends Email) --</option>
                   {enquiries.map((enq) => (
                     <option key={enq.id} value={enq.id}>
                       {enq.name} ({enq.destination})
@@ -635,6 +650,20 @@ function EmailsPanel({
                   <ChevronDown className="w-4 h-4" />
                 </div>
               </div>
+            </div>
+
+            {/* Recipient Email Input Field */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Recipient Email(s) *</label>
+              <input
+                type="text"
+                value={recipientEmails}
+                onChange={(e) => setRecipientEmails(e.target.value)}
+                placeholder="e.g. guest1@gmail.com, guest2@gmail.com"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+                required
+              />
+              <span className="text-[9px] text-slate-500 block mt-1">Type custom emails directly (comma-separated for multiples) or pick from the dropdown to append.</span>
             </div>
 
             {/* Template Select */}
