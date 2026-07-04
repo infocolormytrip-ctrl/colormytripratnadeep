@@ -2,10 +2,32 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+import { adminNewEnquiryEmail } from './src/emailTemplates/admin/newEnquiry';
+
+dotenv.config();
 
 // Since we are running in ESM, find __dirname safely
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// SMTP Configuration
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const smtpUser = process.env.SMTP_USER || '';
+const smtpPass = process.env.SMTP_PASS || '';
+const adminEmail = process.env.ADMIN_EMAIL || 'info.colormytrip@gmail.com';
+
+const transporter = nodemailer.createTransport({
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465,
+  auth: {
+    user: smtpUser,
+    pass: smtpPass,
+  },
+});
 
 async function startServer() {
   const app = express();
@@ -24,13 +46,36 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // API Route - Capture Enquiry submission and simulate mail drop to Info.colormytrip@gmail.com
-  app.post('/api/enquire', (req, res) => {
-    const { name, email, phone, destination, travelers, travelDate, message, id } = req.body;
-    
-    // Beautiful formatted console email simulation log
+  // API Route - Capture Enquiry submission and mail to Admin & Affiliate
+  app.post('/api/enquire', async (req, res) => {
+    const { 
+      name, 
+      email, 
+      phone, 
+      destination, 
+      travelers, 
+      travelDate, 
+      message, 
+      id,
+      affiliateEmail,
+      affiliateName,
+      promoCode
+    } = req.body;
+
+    const emailHtml = adminNewEnquiryEmail({
+      enquiryId: id || 'N/A',
+      customerName: name,
+      customerEmail: email,
+      customerPhone: phone,
+      destination: destination,
+      travelDate: travelDate || undefined,
+      travelers: travelers ? Number(travelers) : undefined,
+      message: message || undefined,
+      packageTitle: destination
+    });
+
     console.log('========================================================================');
-    console.log('📬 NEW INCOMING ENQUIRY DROPPED TO: Info.colormytrip@gmail.com');
+    console.log('📬 NEW INCOMING ENQUIRY RECEIVED');
     console.log('========================================================================');
     console.log(`Enquiry ID   : ${id || 'N/A'}`);
     console.log(`Customer Name: ${name}`);
@@ -39,17 +84,55 @@ async function startServer() {
     console.log(`Destination  : ${destination}`);
     console.log(`Travelers    : ${travelers} pax`);
     console.log(`Travel Date  : ${travelDate}`);
-    console.log(`Custom Note  :`);
-    console.log(`"${message}"`);
-    console.log('========================================================================');
-    console.log('💌 Email Dispatch Status: SUCCESS (Simulated SMTP forward over TLS)');
+    if (affiliateEmail) {
+      console.log(`Affiliate    : ${affiliateName} (${affiliateEmail}) via Code [${promoCode}]`);
+    }
     console.log('========================================================================');
 
-    return res.status(200).json({
-      success: true,
-      message: 'Enquiry dropped to Info.colormytrip@gmail.com successfully (Logged on Server Console).',
-      payload: { id, name, email, destination }
-    });
+    // Attempt real SMTP dispatch
+    if (smtpUser && smtpPass) {
+      try {
+        // Send email to Admin
+        await transporter.sendMail({
+          from: `"ColorMyTrip Notifications" <${smtpUser}>`,
+          to: adminEmail,
+          subject: `📬 New Booking Enquiry Received - ID: ${id || 'N/A'}`,
+          html: emailHtml,
+        });
+        console.log(`💌 Admin notification dispatched to ${adminEmail}`);
+
+        // Send email to Affiliate if assigned
+        if (affiliateEmail && affiliateEmail.trim().length > 0) {
+          await transporter.sendMail({
+            from: `"ColorMyTrip Notifications" <${smtpUser}>`,
+            to: affiliateEmail.trim(),
+            subject: `🔥 New Customer Enquiry Assigned to You - Code: ${promoCode}`,
+            html: emailHtml,
+          });
+          console.log(`💌 Affiliate notification dispatched to ${affiliateEmail}`);
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Enquiry emails dispatched successfully.',
+          payload: { id, name, email, destination }
+        });
+      } catch (smtpError) {
+        console.error('❌ SMTP Dispatch Error:', smtpError);
+        return res.status(500).json({
+          success: false,
+          message: 'Enquiry saved but email dispatch failed.',
+          error: String(smtpError)
+        });
+      }
+    } else {
+      console.log('⚠️ SMTP Credentials missing. Simulated SMTP forward over TLS logged successfully.');
+      return res.status(200).json({
+        success: true,
+        message: 'Enquiry received. Email logged to console (SMTP credentials not configured).',
+        payload: { id, name, email, destination }
+      });
+    }
   });
 
   // Health check
