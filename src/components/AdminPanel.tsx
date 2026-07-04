@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from './NotificationBell';
-import { TravelPackage, BlogPost, OfferMarqueeItem } from '../types';
+import { TravelPackage, BlogPost, OfferMarqueeItem, Enquiry, CustomTemplate, ScheduledEmail, EmailAttachment } from '../types';
 import { 
   Inbox, 
   Plus, 
@@ -25,7 +25,10 @@ import {
   Star,
   MessageSquare,
   ChevronDown,
-  LogOut
+  LogOut,
+  Mail,
+  Clock,
+  Paperclip
 } from 'lucide-react';
 import { Review } from '../types';
 
@@ -237,6 +240,734 @@ function ReviewsPanel({ reviews, addReview, deleteReview, showToast }: ReviewsPa
   );
 }
 
+// ─── Emails Desk Panel Sub-component ──────────────────────────────────────────
+interface EmailsPanelProps {
+  enquiries: Enquiry[];
+  customTemplates: CustomTemplate[];
+  scheduledEmails: ScheduledEmail[];
+  saveCustomTemplate: (t: Omit<CustomTemplate, 'id' | 'createdAt'>) => Promise<CustomTemplate>;
+  deleteCustomTemplate: (id: string) => Promise<void>;
+  scheduleEmail: (e: Omit<ScheduledEmail, 'id' | 'createdAt' | 'status'>) => Promise<ScheduledEmail>;
+  deleteScheduledEmail: (id: string) => Promise<void>;
+  showToast: (type: 'success' | 'error' | 'info' | 'warning', title: string, msg?: string) => void;
+  packages: TravelPackage[];
+}
+
+function EmailsPanel({
+  enquiries,
+  customTemplates,
+  scheduledEmails,
+  saveCustomTemplate,
+  deleteCustomTemplate,
+  scheduleEmail,
+  deleteScheduledEmail,
+  showToast,
+  packages,
+}: EmailsPanelProps) {
+  const [selectedEnqId, setSelectedEnqId] = useState('');
+  const [selectedTmplKey, setSelectedTmplKey] = useState('ack');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [sendMode, setSendMode] = useState<'now' | 'schedule'>('now');
+  const [scheduleDateTime, setScheduleDateTime] = useState('');
+  const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const [sending, setSending] = useState(false);
+  const [tabView, setTabView] = useState<'compose' | 'scheduled' | 'templates'>('compose');
+
+  // Custom template modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [newTmplName, setNewTmplName] = useState('');
+  const [newTmplSubject, setNewTmplSubject] = useState('');
+  const [newTmplHtml, setNewTmplHtml] = useState('');
+  const [savingTmpl, setSavingTmpl] = useState(false);
+
+  const selectedEnquiry = useMemo(() => enquiries.find(e => e.id === selectedEnqId), [selectedEnqId, enquiries]);
+
+  // Default templates pre-population helper
+  const getTemplateContent = useCallback((key: string, enq?: Enquiry) => {
+    const guestName = enq?.name || 'Customer';
+    const destination = enq?.destination || 'Your Destination';
+    const travelDate = enq?.travelDate || 'Flexible / To Be Decided';
+    const duration = packages.find(p => p.id === enq?.packageId)?.duration || 'Custom Plan';
+    const travellers = enq?.travelers ? `${enq.travelers} Pax` : '1 Pax';
+    const enquiryId = enq?.id || 'N/A';
+    const currentYear = new Date().getFullYear();
+
+    if (key === 'ack') {
+      return {
+        subject: `✈️ ColorMyTrip Enquiry Received! - ID: ${enquiryId}`,
+        html: `<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:0;background:#f4f7fa;font-family:Arial,sans-serif;color:#333;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fa;padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);">
+          <tr>
+            <td align="center" style="background:#0f4c81;padding:35px 20px;color:#fff;">
+              <h1 style="margin:0 0 5px;font-size:26px;">Thank You!</h1>
+              <p style="margin:0;font-size:15px;color:#dbefff;">We've successfully received your travel request</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:30px 40px 10px;">
+              <p>Dear <strong>${guestName}</strong>,</p>
+              <p>Thank you for choosing <strong>ColorMyTrip</strong>! We have received your request and our travel experts are currently designing your custom itinerary.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:10px 40px;">
+              <table width="100%" cellpadding="10" cellspacing="0" style="border:1px solid #e5e7eb;background:#fafafa;border-radius:8px;">
+                <tr><td width="40%"><strong>Destination</strong></td><td>${destination}</td></tr>
+                <tr><td><strong>Travel Date</strong></td><td>${travelDate}</td></tr>
+                <tr><td><strong>Duration</strong></td><td>${duration}</td></tr>
+                <tr><td><strong>Travellers</strong></td><td>${travellers}</td></tr>
+                <tr><td><strong>Enquiry ID</strong></td><td>${enquiryId}</td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:30px 40px 40px;">
+              <a href="https://wa.me/919748345171" style="background:#25D366;color:#ffffff;text-decoration:none;padding:12px 30px;border-radius:6px;font-size:15px;font-weight:bold;display:inline-block;">Chat on WhatsApp</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+      };
+    }
+
+    if (key === 'pdf-pack') {
+      return {
+        subject: `🏔️ Your Customized Tour Itinerary - ColorMyTrip`,
+        html: `<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;padding:20px;">
+  <h2>Hello ${guestName},</h2>
+  <p>We are delighted to share the customized travel itinerary and sightseeing details designed for your upcoming trip to <strong>${destination}</strong>.</p>
+  <p><strong>Please find the attached PDF itinerary</strong> at the bottom of this email. It contains complete details including day-wise itinerary, homestays/hotels configuration, inclusions, exclusions, and taxi service parameters.</p>
+  <p>Feel free to request any adjustments! We are happy to modify the plans to match your choices.</p>
+  <br/>
+  <p>Warm regards,<br/><strong>Team ColorMyTrip</strong></p>
+</body>
+</html>`
+      };
+    }
+
+    if (key === 'pdf-inv') {
+      return {
+        subject: `🧾 Booking Confirmation & Invoice - ColorMyTrip`,
+        html: `<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;padding:20px;">
+  <h2>Dear ${guestName},</h2>
+  <p>We have officially confirmed your travel booking for <strong>${destination}</strong>! Thank you for choosing us as your trusted travel partner.</p>
+  <p><strong>Please find the attached Invoice PDF</strong> containing details of the package, advance payment status, cumulative balance amount, and banking coordinates for your convenience.</p>
+  <p>Should you require any amendments or updates, please reach out to us directly.</p>
+  <br/>
+  <p>Best regards,<br/><strong>ColorMyTrip Accounts Desk</strong></p>
+</body>
+</html>`
+      };
+    }
+
+    if (key === 'review') {
+      return {
+        subject: `⭐️ Share Your ColorMyTrip Experience!`,
+        html: `<!DOCTYPE html>
+<html>
+<body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;padding:20px;">
+  <h2>Welcome back, ${guestName}!</h2>
+  <p>We hope you had a magical experience on your trip to <strong>${destination}</strong>. It was a pleasure organizing your travel arrangements.</p>
+  <p>Could you take 1 minute to share your feedback and rate us on Google? Your reviews help fellow travelers discover our services and motivate our team.</p>
+  <div style="margin:20px 0;">
+    <a href="https://share.google/NSftxjF26hqL9dupt" style="background:#0f4c81;color:#ffffff;text-decoration:none;padding:12px 25px;border-radius:6px;font-weight:bold;display:inline-block;">Leave a Google Review ⭐️</a>
+  </div>
+  <p>Thank you once again for traveling with us!</p>
+  <br/>
+  <p>With gratitude,<br/><strong>ColorMyTrip Team</strong></p>
+</body>
+</html>`
+      };
+    }
+
+    return { subject: '', html: '' };
+  }, [packages]);
+
+  // Load template content when enquiry or template selector shifts
+  useEffect(() => {
+    if (selectedTmplKey.startsWith('custom-')) {
+      const customId = selectedTmplKey.replace('custom-', '');
+      const ct = customTemplates.find(t => t.id === customId);
+      if (ct) {
+        let parsedHtml = ct.html;
+        if (selectedEnquiry) {
+          parsedHtml = parsedHtml
+            .replaceAll('{{guestName}}', selectedEnquiry.name)
+            .replaceAll('{{destination}}', selectedEnquiry.destination)
+            .replaceAll('{{enquiryId}}', selectedEnquiry.id);
+        }
+        setEmailSubject(ct.subject);
+        setEmailBody(parsedHtml);
+      }
+    } else {
+      const resolved = getTemplateContent(selectedTmplKey, selectedEnquiry);
+      setEmailSubject(resolved.subject);
+      setEmailBody(resolved.html);
+    }
+  }, [selectedTmplKey, selectedEnquiry, customTemplates, getTemplateContent]);
+
+  // Read uploaded files and convert to base64
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 3.2 * 1024 * 1024) {
+        showToast('error', 'File Too Large', `"${file.name}" exceeds the 3MB server limit.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        setAttachments((prev) => [
+          ...prev,
+          {
+            filename: file.name,
+            content: base64Data,
+            contentType: file.type || 'application/octet-stream',
+          },
+        ]);
+        showToast('info', 'File Attached', `"${file.name}" added successfully.`);
+      };
+      reader.onerror = () => {
+        showToast('error', 'Attachment Failed', `Could not process "${file.name}".`);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = ''; // Reset input element
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleCustomHtmlUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const htmlText = event.target?.result as string;
+      setNewTmplHtml(htmlText);
+      showToast('info', 'Template Parsed', `HTML from "${file.name}" loaded into editor.`);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleSaveCustomTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTmplName.trim() || !newTmplSubject.trim() || !newTmplHtml.trim()) {
+      showToast('error', 'Missing Fields', 'Please complete all fields.');
+      return;
+    }
+    setSavingTmpl(true);
+    try {
+      await saveCustomTemplate({
+        name: newTmplName.trim(),
+        subject: newTmplSubject.trim(),
+        html: newTmplHtml.trim(),
+      });
+      showToast('success', 'Template Saved', `"${newTmplName}" added to template list.`);
+      setNewTmplName(''); setNewTmplSubject(''); setNewTmplHtml('');
+      setShowTemplateModal(false);
+    } catch {
+      showToast('error', 'Save Failed', 'Could not save template.');
+    } finally {
+      setSavingTmpl(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string, name: string) => {
+    if (!confirm(`Delete custom template "${name}"?`)) return;
+    try {
+      await deleteCustomTemplate(id);
+      showToast('success', 'Template Deleted', 'Custom template removed.');
+      if (selectedTmplKey === `custom-${id}`) setSelectedTmplKey('ack');
+    } catch {
+      showToast('error', 'Delete Failed', 'Failed to remove template.');
+    }
+  };
+
+  const handleSendOrSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEnquiry) {
+      showToast('error', 'Validation Error', 'Please select a guest enquiry.');
+      return;
+    }
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      showToast('error', 'Validation Error', 'Subject and content are required.');
+      return;
+    }
+
+    if (sendMode === 'schedule') {
+      if (!scheduleDateTime) {
+        showToast('error', 'Validation Error', 'Please choose a schedule date and time.');
+        return;
+      }
+      const targetTime = new Date(scheduleDateTime).getTime();
+      if (targetTime <= Date.now()) {
+        showToast('error', 'Validation Error', 'Scheduled time must be in the future.');
+        return;
+      }
+
+      setSending(true);
+      try {
+        await scheduleEmail({
+          to: selectedEnquiry.email,
+          subject: emailSubject.trim(),
+          html: emailBody,
+          sendAt: new Date(scheduleDateTime).toISOString(),
+          attachments: attachments.length ? attachments : undefined,
+        });
+        showToast('success', 'Email Scheduled', `Queued to send on ${new Date(scheduleDateTime).toLocaleString()}.`);
+        // Reset compose fields
+        setAttachments([]);
+        setScheduleDateTime('');
+      } catch (err) {
+        showToast('error', 'Scheduling Failed', 'Could not queue scheduled email.');
+      } finally {
+        setSending(false);
+      }
+    } else {
+      // Send immediately
+      setSending(true);
+      try {
+        const response = await fetch('/api/send-custom-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: selectedEnquiry.email,
+            subject: emailSubject.trim(),
+            html: emailBody,
+            attachments: attachments.length ? attachments : undefined,
+          }),
+        });
+        const result = await response.json();
+        if (response.ok && result.success) {
+          showToast('success', 'Email Dispatched', `Direct email delivered to ${selectedEnquiry.email}.`);
+          setAttachments([]);
+        } else {
+          showToast('error', 'Send Failed', result.error || 'Server rejected SMTP delivery.');
+        }
+      } catch (err) {
+        showToast('error', 'Network Error', 'Direct send API request failed.');
+      } finally {
+        setSending(false);
+      }
+    }
+  };
+
+  const handleCancelScheduled = async (id: string) => {
+    if (!confirm('Cancel this scheduled email dispatch?')) return;
+    try {
+      await deleteScheduledEmail(id);
+      showToast('success', 'Email Canceled', 'Scheduled task successfully purged.');
+    } catch {
+      showToast('error', 'Cancel Failed', 'Could not remove scheduled task.');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header and Sub-Tabs */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 p-5 rounded-2xl border border-slate-800">
+        <div>
+          <h3 className="text-lg font-black text-white flex items-center gap-2">
+            <Mail className="w-5 h-5 text-indigo-400" />
+            <span>Admin Email Desk</span>
+          </h3>
+          <p className="text-slate-400 text-xs mt-0.5">Send custom HTML alerts, itineraries, invoice updates, or review links</p>
+        </div>
+        <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+          {(['compose', 'scheduled', 'templates'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setTabView(tab)}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer capitalize ${
+                tabView === tab ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {tab === 'scheduled' ? `Scheduled (${scheduledEmails.filter(e => e.status === 'pending').length})` : tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Compose Tab Layout */}
+      {tabView === 'compose' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Settings Column */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Mail Settings</h4>
+
+            {/* Target Enquiry Select */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Select Guest / Enquiry *</label>
+              <div className="relative">
+                <select
+                  value={selectedEnqId}
+                  onChange={(e) => setSelectedEnqId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                >
+                  <option value="">-- Choose Guest (Destination) --</option>
+                  {enquiries.map((enq) => (
+                    <option key={enq.id} value={enq.id}>
+                      {enq.name} ({enq.destination})
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Template Select */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Select Template *</label>
+              <div className="relative">
+                <select
+                  value={selectedTmplKey}
+                  onChange={(e) => setSelectedTmplKey(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
+                >
+                  <optgroup label="Default System Templates">
+                    <option value="ack">Inquiry Acknowledgement Template</option>
+                    <option value="pdf-pack">Custom Itinerary PDF Carrier</option>
+                    <option value="pdf-inv">Booking Confirmation & Invoice Carrier</option>
+                    <option value="review">Google Review Request Carrier</option>
+                  </optgroup>
+                  {customTemplates.length > 0 && (
+                    <optgroup label="Custom Uploaded Templates">
+                      {customTemplates.map((t) => (
+                        <option key={t.id} value={`custom-${t.id}`}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+            </div>
+
+            {/* Send Settings */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Dispatch Schedule *</label>
+              <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-lg border border-slate-850">
+                <button
+                  type="button"
+                  onClick={() => setSendMode('now')}
+                  className={`py-2 rounded-md text-[11px] font-extrabold cursor-pointer transition-colors ${
+                    sendMode === 'now' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Send Immediately
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSendMode('schedule')}
+                  className={`py-2 rounded-md text-[11px] font-extrabold cursor-pointer transition-colors ${
+                    sendMode === 'schedule' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Schedule Later
+                </button>
+              </div>
+            </div>
+
+            {/* Date-time picker */}
+            {sendMode === 'schedule' && (
+              <div className="animate-fadeIn">
+                <label className="block text-[11px] font-bold text-slate-400 mb-1.5 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Choose Send Time</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduleDateTime}
+                  onChange={(e) => setScheduleDateTime(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 text-xs px-3 py-2 rounded-lg text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  required
+                />
+              </div>
+            )}
+
+            {/* File Attachment Uploader */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5 flex items-center gap-1.5">
+                <Paperclip className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Upload PDF Attachments</span>
+              </label>
+              <div className="relative border border-dashed border-slate-800 rounded-lg p-4 bg-slate-950/60 text-center hover:border-indigo-500 transition-colors">
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <span className="text-[10px] text-slate-400 font-bold">
+                  Click to select files (Max 3MB each)
+                </span>
+              </div>
+
+              {/* Attachments List */}
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  {attachments.map((att, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-slate-950 border border-slate-850 p-2 rounded-lg text-[10px] font-semibold text-white">
+                      <span className="truncate max-w-[200px]">{att.filename}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(idx)}
+                        className="text-red-400 hover:text-red-300 font-bold uppercase tracking-wider text-[9px] cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Editor Column */}
+          <form onSubmit={handleSendOrSchedule} className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Compose Mail Body</h4>
+
+            {/* Subject */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Email Subject *</label>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="e.g. Action Required: Your ColorMyTrip Booking details inside"
+                className="w-full bg-slate-950 border border-slate-800 text-xs px-3 py-2.5 rounded-lg text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+                required
+              />
+            </div>
+
+            {/* Body */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-400">Email HTML Body Content *</label>
+                <span className="text-[9px] font-mono text-indigo-400">Variable placeholders: {'{{guestName}}'}, {'{{destination}}'}, {'{{enquiryId}}'}</span>
+              </div>
+              <textarea
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                rows={16}
+                placeholder="Enter customized HTML content..."
+                className="w-full bg-slate-950 border border-slate-800 text-xs font-mono p-3 rounded-lg text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500 resize-none"
+                required
+              />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
+              <button
+                type="submit"
+                disabled={sending || !selectedEnquiry}
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-indigo-900/50"
+              >
+                {sending ? 'Processing...' : sendMode === 'schedule' ? 'Queue Scheduled Mail' : 'Dispatch Email Now'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Scheduled Tab Layout */}
+      {tabView === 'scheduled' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-4">Pending Scheduled Queue</h4>
+          {scheduledEmails.filter(e => e.status === 'pending').length === 0 ? (
+            <div className="text-center p-12 text-slate-500 text-sm">No emails currently scheduled.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-400">
+                    <th className="pb-3 font-bold">To</th>
+                    <th className="pb-3 font-bold">Subject</th>
+                    <th className="pb-3 font-bold">Created Date</th>
+                    <th className="pb-3 font-bold">Send Time</th>
+                    <th className="pb-3 font-bold">Attachments</th>
+                    <th className="pb-3 font-bold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850 text-slate-300">
+                  {scheduledEmails
+                    .filter(e => e.status === 'pending')
+                    .map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-950/20">
+                        <td className="py-3.5 font-bold text-white">{item.to}</td>
+                        <td className="py-3.5 max-w-[200px] truncate">{item.subject}</td>
+                        <td className="py-3.5">{new Date(item.createdAt).toLocaleDateString()}</td>
+                        <td className="py-3.5 text-indigo-400 font-extrabold">{new Date(item.sendAt).toLocaleString()}</td>
+                        <td className="py-3.5">{item.attachments?.length || 0} Files</td>
+                        <td className="py-3.5 text-right">
+                          <button
+                            onClick={() => handleCancelScheduled(item.id)}
+                            className="p-1.5 text-rose-400 hover:bg-slate-850 rounded-lg transition-colors cursor-pointer"
+                            title="Cancel email schedule"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Templates Tab Layout */}
+      {tabView === 'templates' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider">Custom Templates</h4>
+            <button
+              onClick={() => setShowTemplateModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Upload Template
+            </button>
+          </div>
+
+          {customTemplates.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-sm">
+              No custom templates uploaded yet. Upload a `.html` file or write one to start!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customTemplates.map((tmpl) => (
+                <div key={tmpl.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative flex flex-col justify-between group hover:border-slate-700 transition-colors">
+                  <div>
+                    <h5 className="text-white font-bold text-sm mb-1">{tmpl.name}</h5>
+                    <p className="text-slate-400 text-xs mb-3 italic">Subj: {tmpl.subject}</p>
+                    <div className="bg-slate-950 p-2 rounded-lg max-h-32 overflow-hidden text-[9px] font-mono text-slate-500 border border-slate-850">
+                      {tmpl.html.slice(0, 300)}...
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-800">
+                    <span className="text-[10px] text-slate-500">{new Date(tmpl.createdAt).toLocaleDateString()}</span>
+                    <button
+                      onClick={() => handleDeleteTemplate(tmpl.id, tmpl.name)}
+                      className="text-red-400 hover:text-red-300 font-extrabold text-[10px] tracking-wider uppercase cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Custom HTML Template Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-indigo-950/60 to-slate-900">
+              <div>
+                <h4 className="text-sm font-black text-white">Create Custom Email Template</h4>
+                <p className="text-slate-400 text-xs">Save HTML layout designs for guest dispatching</p>
+              </div>
+              <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-white transition-colors p-1 cursor-pointer"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleSaveCustomTemplate} className="p-6 space-y-4">
+              {/* Template Name */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Template Label / Name *</label>
+                <input
+                  type="text"
+                  value={newTmplName}
+                  onChange={(e) => setNewTmplName(e.target.value)}
+                  placeholder="e.g. Kashmir Winter Group Tour Layout"
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm px-3 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+                  required
+                />
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Default Email Subject *</label>
+                <input
+                  type="text"
+                  value={newTmplSubject}
+                  onChange={(e) => setNewTmplSubject(e.target.value)}
+                  placeholder="e.g. Your Kashmir Tour Plan is Ready!"
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm px-3 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+                  required
+                />
+              </div>
+
+              {/* Upload HTML File Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Upload .html Template File (Optional)</label>
+                <div className="relative border border-dashed border-slate-700 rounded-lg p-4 bg-slate-800 text-center hover:border-indigo-500 transition-colors">
+                  <input
+                    type="file"
+                    accept=".html"
+                    onChange={handleCustomHtmlUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-slate-400 font-bold">
+                    Click to select .html file
+                  </span>
+                </div>
+              </div>
+
+              {/* HTML Editor */}
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1.5">Or Paste Raw HTML Code *</label>
+                <textarea
+                  value={newTmplHtml}
+                  onChange={(e) => setNewTmplHtml(e.target.value)}
+                  rows={8}
+                  placeholder="Paste HTML source code here..."
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-xs font-mono p-3 rounded-lg focus:outline-none focus:border-indigo-500 placeholder-slate-500 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2 border-t border-slate-800">
+                <button type="button" onClick={() => setShowTemplateModal(false)} className="flex-1 px-4 py-2.5 bg-slate-850 border border-slate-750 text-slate-300 hover:text-white rounded-lg text-xs font-bold cursor-pointer">Cancel</button>
+                <button type="submit" disabled={savingTmpl} className="flex-1 px-4 py-2.5 bg-indigo-650 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-60">
+                  {savingTmpl ? 'Saving...' : 'Save Template'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -274,6 +1005,12 @@ export default function AdminPanel() {
     createPromoCode,
     updatePromoCode,
     deletePromoCode,
+    customTemplates,
+    scheduledEmails,
+    saveCustomTemplate,
+    deleteCustomTemplate,
+    scheduleEmail,
+    deleteScheduledEmail,
 
     // CMS settings
     footerSettings,
@@ -290,22 +1027,22 @@ export default function AdminPanel() {
   } = useData();
 
   // Active view tabs
-  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website' | 'reviews'>('enquiries');
+  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website' | 'reviews' | 'emails'>('enquiries');
   
   // Status filters for enquiries
   const [enqFilter, setEnqFilter] = useState<string>('all');
-
+ 
   // Search query for enquiries
   const [enqSearch, setEnqSearch] = useState<string>('');
-
+ 
   // Rule 9 states and handlers
   const [tempFinalAmounts, setTempFinalAmounts] = useState<Record<string, string>>({});
-
+ 
   // Load tab from URL query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && ['enquiries', 'packages', 'blogs', 'offers', 'videos', 'promoCodes', 'website', 'reviews'].includes(tab)) {
+    if (tab && ['enquiries', 'packages', 'blogs', 'offers', 'videos', 'promoCodes', 'website', 'reviews', 'emails'].includes(tab)) {
       setPanelTab(tab as any);
     }
   }, []);
@@ -1032,6 +1769,23 @@ export default function AdminPanel() {
                   panelTab === 'promoCodes' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-350'
                 }`}>
                   {promoCodes.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setPanelTab('emails')}
+                className={`w-full text-left px-4 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                  panelTab === 'emails'
+                    ? 'bg-indigo-655 text-white shadow-md shadow-indigo-900/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Mail className="w-5 h-5 shrink-0" />
+                <span>Email Desk</span>
+                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  panelTab === 'emails' ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-350'
+                }`}>
+                  Desk
                 </span>
               </button>
 
@@ -2660,6 +3414,20 @@ export default function AdminPanel() {
                   addReview={addReview}
                   deleteReview={deleteReview}
                   showToast={showToast}
+                />
+              )}
+
+              {panelTab === 'emails' && (
+                <EmailsPanel
+                  enquiries={enquiries}
+                  customTemplates={customTemplates}
+                  scheduledEmails={scheduledEmails}
+                  saveCustomTemplate={saveCustomTemplate}
+                  deleteCustomTemplate={deleteCustomTemplate}
+                  scheduleEmail={scheduleEmail}
+                  deleteScheduledEmail={deleteScheduledEmail}
+                  showToast={showToast}
+                  packages={packages}
                 />
               )}
 

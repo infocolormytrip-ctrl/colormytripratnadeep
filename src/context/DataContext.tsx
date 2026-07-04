@@ -29,7 +29,9 @@ import {
   BlogPost,
   Review,
   VideoTestimonial,
-  OfferMarqueeItem
+  OfferMarqueeItem,
+  CustomTemplate,
+  ScheduledEmail
 } from '../types';
 import { Affiliate, AffiliateStatus, ActivityLogEntry, PromoCode, CommissionRecord, NotificationItem } from '../types/affiliate';
 import {
@@ -107,6 +109,12 @@ interface DataContextType {
   deleteReview: (id: string) => Promise<void>;
   videoTestimonials: VideoTestimonial[];
   offers: OfferMarqueeItem[];
+  customTemplates: CustomTemplate[];
+  scheduledEmails: ScheduledEmail[];
+  saveCustomTemplate: (template: Omit<CustomTemplate, 'id' | 'createdAt'>) => Promise<CustomTemplate>;
+  deleteCustomTemplate: (id: string) => Promise<void>;
+  scheduleEmail: (email: Omit<ScheduledEmail, 'id' | 'createdAt' | 'status'>) => Promise<ScheduledEmail>;
+  deleteScheduledEmail: (id: string) => Promise<void>;
   adminUser: User | null;
   isAdminLoggedIn: boolean;
   role: Role;
@@ -265,6 +273,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [reviews, setReviews] = useState<Review[]>([]);
   const [videoTestimonials, setVideoTestimonials] = useState<VideoTestimonial[]>([]);
   const [offers, setOffers] = useState<OfferMarqueeItem[]>([]);
+  const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
+  const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>([]);
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [adminUser, setAdminUser] = useState<User | null>(null);
@@ -578,11 +588,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('Firestore reviews fetch error, falling back to local storage:', error);
           loadReviewsLocal();
         }
+
+        // Custom templates collection
+        try {
+          const templatesCol = collection(db, 'customTemplates');
+          const snap = await getDocs(templatesCol);
+          const list = snap.empty ? [] : snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomTemplate));
+          setCustomTemplates(list);
+          localStorage.setItem('cmt_custom_templates', JSON.stringify(list));
+        } catch (error) {
+          console.error('Firestore customTemplates fetch error, falling back to local storage:', error);
+          loadTemplatesLocal();
+        }
+
+        // Scheduled emails collection
+        try {
+          const scheduledCol = collection(db, 'scheduledEmails');
+          const snap = await getDocs(scheduledCol);
+          const list = snap.empty ? [] : snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduledEmail));
+          setScheduledEmails(list);
+          localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+        } catch (error) {
+          console.error('Firestore scheduledEmails fetch error, falling back to local storage:', error);
+          loadScheduledLocal();
+        }
       } else {
         loadPackagesLocal();
         loadBlogsLocal();
         loadVideosLocal();
         loadReviewsLocal();
+        loadTemplatesLocal();
+        loadScheduledLocal();
       }
     };
 
@@ -627,6 +663,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('cmt_reviews', JSON.stringify(initialReviews));
       setReviews(initialReviews);
     }
+  };
+
+  const loadTemplatesLocal = () => {
+    const stored = localStorage.getItem('cmt_custom_templates');
+    if (stored) setCustomTemplates(JSON.parse(stored));
+    else setCustomTemplates([]);
+  };
+
+  const loadScheduledLocal = () => {
+    const stored = localStorage.getItem('cmt_scheduled_emails');
+    if (stored) setScheduledEmails(JSON.parse(stored));
+    else setScheduledEmails([]);
   };
 
   const isAdminLoggedIn = Boolean(bypassAdmin || role === 'admin');
@@ -2100,6 +2148,118 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ── Custom Templates CRUD ─────────────────────────────────────
+  const saveCustomTemplate = async (templateData: Omit<CustomTemplate, 'id' | 'createdAt'>): Promise<CustomTemplate> => {
+    const newTemplate: CustomTemplate = {
+      ...templateData,
+      id: `tmpl-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isFirebaseActive && db) {
+      try {
+        const docRef = await addDoc(collection(db, 'customTemplates'), {
+          name: newTemplate.name,
+          subject: newTemplate.subject,
+          html: newTemplate.html,
+          createdAt: newTemplate.createdAt,
+        });
+        newTemplate.id = docRef.id;
+        setCustomTemplates((prev) => {
+          const list = [newTemplate, ...prev];
+          localStorage.setItem('cmt_custom_templates', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'customTemplates');
+      }
+    } else {
+      const stored = localStorage.getItem('cmt_custom_templates');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(newTemplate);
+      localStorage.setItem('cmt_custom_templates', JSON.stringify(list));
+      setCustomTemplates(list);
+    }
+    return newTemplate;
+  };
+
+  const deleteCustomTemplate = async (id: string): Promise<void> => {
+    if (isFirebaseActive && db) {
+      try {
+        await deleteDoc(doc(db, 'customTemplates', id));
+        setCustomTemplates((prev) => {
+          const list = prev.filter(t => t.id !== id);
+          localStorage.setItem('cmt_custom_templates', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `customTemplates/${id}`);
+      }
+    } else {
+      const list = customTemplates.filter(t => t.id !== id);
+      localStorage.setItem('cmt_custom_templates', JSON.stringify(list));
+      setCustomTemplates(list);
+    }
+  };
+
+  // ── Scheduled Emails CRUD ──────────────────────────────────────
+  const scheduleEmail = async (emailData: Omit<ScheduledEmail, 'id' | 'createdAt' | 'status'>): Promise<ScheduledEmail> => {
+    const newEmail: ScheduledEmail = {
+      ...emailData,
+      id: `sched-${Date.now()}`,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isFirebaseActive && db) {
+      try {
+        const docRef = await addDoc(collection(db, 'scheduledEmails'), {
+          to: newEmail.to,
+          subject: newEmail.subject,
+          html: newEmail.html,
+          sendAt: newEmail.sendAt,
+          status: newEmail.status,
+          attachments: newEmail.attachments || [],
+          createdAt: newEmail.createdAt,
+        });
+        newEmail.id = docRef.id;
+        setScheduledEmails((prev) => {
+          const list = [newEmail, ...prev];
+          localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'scheduledEmails');
+      }
+    } else {
+      const stored = localStorage.getItem('cmt_scheduled_emails');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(newEmail);
+      localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+      setScheduledEmails(list);
+    }
+    return newEmail;
+  };
+
+  const deleteScheduledEmail = async (id: string): Promise<void> => {
+    if (isFirebaseActive && db) {
+      try {
+        await deleteDoc(doc(db, 'scheduledEmails', id));
+        setScheduledEmails((prev) => {
+          const list = prev.filter(e => e.id !== id);
+          localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+          return list;
+        });
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `scheduledEmails/${id}`);
+      }
+    } else {
+      const list = scheduledEmails.filter(e => e.id !== id);
+      localStorage.setItem('cmt_scheduled_emails', JSON.stringify(list));
+      setScheduledEmails(list);
+    }
+  };
+
   const createOffer = async (offerData: Omit<OfferMarqueeItem, 'id'>): Promise<OfferMarqueeItem> => {
     const newOffer: OfferMarqueeItem = {
       ...offerData,
@@ -2609,6 +2769,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteVideoTestimonial,
         addReview,
         deleteReview,
+        customTemplates,
+        scheduledEmails,
+        saveCustomTemplate,
+        deleteCustomTemplate,
+        scheduleEmail,
+        deleteScheduledEmail,
         createOffer,
         updateOffer,
         deleteOffer,

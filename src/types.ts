@@ -166,3 +166,30 @@ export interface OfferMarqueeItem {
   background_color: string;
   text_color: string;
 }
+
+export interface CustomTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  html: string;
+  createdAt: string;
+}
+
+export interface EmailAttachment {
+  filename: string;
+  content: string; // base64 string
+  contentType: string;
+}
+
+export interface ScheduledEmail {
+  id: string;
+  to: string;
+  subject: string;
+  html: string;
+  sendAt: string; // ISO timestamp
+  status: 'pending' | 'sent' | 'failed';
+  attachments?: EmailAttachment[];
+  error?: string;
+  createdAt: string;
+}
+

@@ -150,6 +150,14 @@ function isAdmin() {
 			allow write: if isAdmin();
 		}
 
+		match /customTemplates/{docId} {
+			allow read, write: if isAdmin();
+		}
+
+		match /scheduledEmails/{docId} {
+			allow read, write: if isAdmin();
+		}
+
 		match /{document=**} {
 			allow read, write: if false;
 		}
