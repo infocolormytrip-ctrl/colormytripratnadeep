@@ -27,7 +27,8 @@ import {
   Megaphone,
   Video,
   X,
-  Database
+  Database,
+  LogOut
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 
@@ -136,8 +137,46 @@ export default function AffiliatePortal() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <div className="w-full h-full bg-slate-950 flex flex-col flex-1">
         
+        {/* Mobile Header (viewport < 768px when logged in) */}
+        {isAffiliateSession && (
+          <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-indigo-650 rounded-lg">
+                <Percent className="w-4.5 h-4.5 text-white" />
+              </div>
+              <h2 className="text-sm font-sans font-black tracking-tight">CMT Affiliate Portal</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <NotificationBell
+                notifications={notifications}
+                onMarkAsRead={markNotificationAsRead}
+                onMarkAllAsRead={() => markAllNotificationsAsRead('affiliate', affiliateIdValue)}
+              />
+              <button
+                onClick={handleLogout}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut className="w-4.5 h-4.5 text-rose-450" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Header when NOT logged in */}
+        {!isAffiliateSession && (
+          <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-indigo-650 rounded-lg">
+                <Lock className="w-4.5 h-4.5 text-white" />
+              </div>
+              <h2 className="text-sm font-sans font-black tracking-tight">Affiliate Access</h2>
+            </div>
+          </div>
+        )}
+
         {/* Header Desk */}
-        <div className="bg-slate-900 text-white p-4 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-800">
+        <div className="hidden md:flex bg-slate-900 text-white p-4 md:px-6 md:py-4 items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-650 rounded-xl shadow-inner">
               <Percent className="w-5 h-5 text-white animate-pulse" />
@@ -200,10 +239,10 @@ export default function AffiliatePortal() {
             </div>
           </div>
         ) : (
-          <div className="grow flex flex-col md:flex-row overflow-hidden">
+          <div className="grow flex flex-col md:flex-row overflow-hidden relative">
             
             {/* Sidebar menu categories */}
-            <div className="md:w-60 bg-slate-900 border-r border-slate-800 p-4 space-y-1.5 shrink-0 flex md:flex-col gap-2 md:gap-0 overflow-x-auto md:overflow-x-visible">
+            <div className="hidden md:flex md:w-60 bg-slate-900 border-r border-slate-800 p-4 space-y-1.5 shrink-0 md:flex-col overflow-x-auto md:overflow-x-visible">
               
               <button
                 onClick={() => setActiveTab('bookings')}
@@ -247,7 +286,7 @@ export default function AffiliatePortal() {
             </div>
 
             {/* Display Body Content Panel */}
-            <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100 space-y-6">
+            <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100 space-y-6 pb-24 md:pb-6">
 
             
             {activeTab === 'summary' ? (
@@ -590,19 +629,20 @@ export default function AffiliatePortal() {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
+                {/* Desktop: Bookings table */}
+                <div className="hidden md:block overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
                   <table className="min-w-full text-xs text-left">
                     <thead>
                       <tr className="border-b border-slate-800 bg-slate-900 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         <th className="px-4 py-3">Booking ID</th>
                         <th className="px-4 py-3">Customer Name</th>
-                        <th className="px-4 py-3">Package Name</th>
+                        <th className="px-4 py-3">Package / Destination</th>
                         <th className="px-4 py-3">Travel Date</th>
                         <th className="px-4 py-3 font-mono">Promo Code</th>
                         <th className="px-4 py-3">Booking Status</th>
-                        <th className="px-4 py-3 text-right">Estimated Booking Amount</th>
-                        <th className="px-4 py-3 text-right">Final Negotiated Amount</th>
-                        <th className="px-4 py-3 text-right">Commission Amount</th>
+                        <th className="px-4 py-3 text-right">Estimated Amount</th>
+                        <th className="px-4 py-3 text-right">Final Amount</th>
+                        <th className="px-4 py-3 text-right">Commission</th>
                         <th className="px-4 py-3 text-center">Commission Status</th>
                         <th className="px-4 py-3">Last Updated</th>
                       </tr>
@@ -610,7 +650,7 @@ export default function AffiliatePortal() {
                     <tbody className="divide-y divide-slate-800 text-slate-300">
                       {searchableBookings.length === 0 ? (
                         <tr>
-                          <td colSpan={11} className="px-4 py-8 text-center text-slate-550 font-medium">
+                          <td colSpan={11} className="px-4 py-8 text-center text-slate-500 font-medium">
                             No bookings found matching your search.
                           </td>
                         </tr>
@@ -620,59 +660,43 @@ export default function AffiliatePortal() {
                           const bookingStatus = enq.bookingStatus || enq.status || 'Enquired';
                           const displayEstimated = enq.estimatedBookingAmount != null ? `₹${enq.estimatedBookingAmount.toLocaleString()}` : (enq.bookingAmount != null ? `₹${enq.bookingAmount.toLocaleString()}` : '-');
                           const displayFinal = enq.finalNegotiatedAmount != null ? `₹${enq.finalNegotiatedAmount.toLocaleString()}` : '-';
-
                           const isOnboardedOrLater = ['Onboarded', 'Completed', 'Cancelled'].includes(bookingStatus);
                           let displayCommission = 'Pending Confirmation';
                           if (isOnboardedOrLater) {
-                            if (enq.calculatedCommission != null) {
-                              displayCommission = `₹${enq.calculatedCommission.toLocaleString()}`;
-                            } else {
+                            if (enq.calculatedCommission != null) displayCommission = `₹${enq.calculatedCommission.toLocaleString()}`;
+                            else {
                               const finalAmt = enq.finalNegotiatedAmount || 0;
                               const val = enq.commissionValue || 0;
-                              if (enq.commissionType === 'Percentage') {
-                                  displayCommission = `₹${Math.round(finalAmt * (val / 100)).toLocaleString()}`;
-                              } else {
-                                  displayCommission = `₹${Math.round(val).toLocaleString()}`;
-                              }
+                              displayCommission = enq.commissionType === 'Percentage' ? `₹${Math.round(finalAmt * (val / 100)).toLocaleString()}` : `₹${Math.round(val).toLocaleString()}`;
                             }
                           }
-
                           const displayCommStatus = enq.commissionStatus || '-';
                           const displayLastUpdated = enq.updatedAt ? new Date(enq.updatedAt).toLocaleString() : new Date(enq.createdAt).toLocaleString();
-
                           return (
-                            <tr key={enq.id} className="hover:bg-slate-850/40 border-b border-slate-805 transition-colors font-medium">
-                              <td className="px-4 py-3.5 font-mono font-bold text-indigo-400">{enq.id}</td>
+                            <tr key={enq.id} className="hover:bg-slate-850/40 border-b border-slate-800 transition-colors font-medium">
+                              <td className="px-4 py-3.5 font-mono font-bold text-indigo-400 text-[10px]">{enq.id.slice(0,8)}...</td>
                               <td className="px-4 py-3.5 font-bold text-white">{enq.name}</td>
                               <td className="px-4 py-3.5 max-w-[150px] truncate" title={enq.destination}>{enq.destination}</td>
                               <td className="px-4 py-3.5 font-mono text-slate-400">{enq.travelDate || '—'}</td>
                               <td className="px-4 py-3.5 font-mono font-bold text-slate-350">{displayPromo}</td>
                               <td className="px-4 py-3.5">
-                                <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border ${bookingStatus === 'Onboarded' || bookingStatus === 'Completed'
-                                    ? 'bg-emerald-950 text-emerald-450 border-emerald-900'
-                                    : bookingStatus === 'Cancelled'
-                                      ? 'bg-rose-955 text-rose-450 border-rose-900'
-                                      : 'bg-slate-950 text-slate-400 border-slate-800'
-                                  }`}>
-                                  {bookingStatus}
-                                </span>
+                                <span className={`px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border ${
+                                  bookingStatus === 'Onboarded' || bookingStatus === 'Completed' ? 'bg-emerald-950 text-emerald-450 border-emerald-900'
+                                  : bookingStatus === 'Cancelled' ? 'bg-rose-955 text-rose-450 border-rose-900'
+                                  : 'bg-slate-950 text-slate-400 border-slate-800'
+                                }`}>{bookingStatus}</span>
                               </td>
                               <td className="px-4 py-3.5 text-right font-bold text-slate-300">{displayEstimated}</td>
                               <td className="px-4 py-3.5 text-right font-bold text-slate-300">{displayFinal}</td>
                               <td className={`px-4 py-3.5 text-right font-bold ${displayCommission === 'Pending Confirmation' ? 'text-slate-500 italic' : 'text-emerald-450'}`}>{displayCommission}</td>
                               <td className="px-4 py-3.5 text-center">
-                                {enq.affiliateId ? (
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${displayCommStatus === 'Generated'
-                                      ? 'bg-blue-955 text-blue-400 border-blue-900'
-                                      : displayCommStatus === 'Processed'
-                                        ? 'bg-emerald-955 text-emerald-450 border-emerald-900'
-                                        : 'bg-slate-950 text-slate-400 border-slate-800'
-                                    }`}>
-                                    {displayCommStatus}
-                                  </span>
-                                ) : '—'}
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                  displayCommStatus === 'Generated' ? 'bg-blue-955 text-blue-400 border-blue-900'
+                                  : displayCommStatus === 'Processed' ? 'bg-emerald-955 text-emerald-450 border-emerald-900'
+                                  : 'bg-slate-950 text-slate-400 border-slate-800'
+                                }`}>{displayCommStatus}</span>
                               </td>
-                              <td className="px-4 py-3.5 font-mono text-slate-500">{displayLastUpdated}</td>
+                              <td className="px-4 py-3.5 font-mono text-slate-500 text-[10px]">{displayLastUpdated}</td>
                             </tr>
                           );
                         })
@@ -680,8 +704,91 @@ export default function AffiliatePortal() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Mobile: Bookings card list */}
+                <div className="block md:hidden space-y-3">
+                  {searchableBookings.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 text-xs bg-slate-900 border border-slate-800 rounded-2xl">
+                      No bookings linked to your code yet.
+                    </div>
+                  ) : searchableBookings.map((enq) => {
+                    const bookingStatus = enq.bookingStatus || enq.status || 'Enquired';
+                    const displayFinal = enq.finalNegotiatedAmount != null ? `₹${enq.finalNegotiatedAmount.toLocaleString()}` : '-';
+                    const isOnboardedOrLater = ['Onboarded', 'Completed', 'Cancelled'].includes(bookingStatus);
+                    let displayCommission = 'Pending';
+                    if (isOnboardedOrLater) {
+                      if (enq.calculatedCommission != null) displayCommission = `₹${enq.calculatedCommission.toLocaleString()}`;
+                      else {
+                        const finalAmt = enq.finalNegotiatedAmount || 0;
+                        const val = enq.commissionValue || 0;
+                        displayCommission = enq.commissionType === 'Percentage' ? `₹${Math.round(finalAmt * (val / 100)).toLocaleString()}` : `₹${Math.round(val).toLocaleString()}`;
+                      }
+                    }
+                    const displayCommStatus = enq.commissionStatus || 'Pending Confirmation';
+                    const statusColor = bookingStatus === 'Onboarded' || bookingStatus === 'Completed'
+                      ? 'bg-emerald-950/60 text-emerald-450 border-emerald-900/50'
+                      : bookingStatus === 'Cancelled' ? 'bg-rose-955/60 text-rose-455 border-rose-900/50'
+                      : 'bg-slate-950 text-slate-400 border-slate-800';
+                    const commStatusColor = displayCommStatus === 'Processed' ? 'bg-emerald-950/60 text-emerald-450 border-emerald-900/50'
+                      : displayCommStatus === 'Generated' ? 'bg-blue-955/60 text-blue-400 border-blue-900/50'
+                      : 'bg-slate-950 text-slate-400 border-slate-800';
+                    return (
+                      <div key={enq.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="font-extrabold text-white text-sm leading-snug">{enq.name}</h4>
+                            <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate max-w-[200px]" title={enq.destination}>{enq.destination}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-lg border shrink-0 ${statusColor}`}>{bookingStatus}</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs border-t border-slate-800/50 pt-3">
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-mono block">Travel Date</span>
+                            <span className="font-bold text-indigo-400">{enq.travelDate || '—'}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] text-slate-500 uppercase font-mono block">Promo Code</span>
+                            <span className="font-mono font-bold text-slate-300">{enq.promoCode || '-'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[9px] text-slate-500 uppercase font-mono block">Final Amount</span>
+                            <span className="font-bold text-white">{displayFinal}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[9px] text-slate-500 uppercase font-mono block">Commission</span>
+                            <span className={`font-extrabold ${displayCommission === 'Pending' ? 'text-slate-500 italic' : 'text-emerald-450'}`}>{displayCommission}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-slate-800/50 pt-2 text-[10px]">
+                          <span className="text-slate-500 font-mono">Updated: {enq.updatedAt ? new Date(enq.updatedAt).toLocaleDateString() : new Date(enq.createdAt).toLocaleDateString()}</span>
+                          <span className={`px-2 py-0.5 rounded-lg font-bold border ${commStatusColor}`}>{displayCommStatus}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
+
+            {/* Mobile Bottom Tab Bar */}
+            <div className="md:hidden fixed bottom-0 inset-x-0 bg-slate-900 border-t border-slate-800 px-2 py-2 flex items-center justify-around z-45 shrink-0">
+              <button
+                onClick={() => setActiveTab('bookings')}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl cursor-pointer transition-colors ${activeTab === 'bookings' ? 'text-indigo-400' : 'text-slate-500'}`}
+              >
+                <Inbox className="w-5 h-5" />
+                <span className="text-[10px] font-bold">Bookings</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('summary')}
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl cursor-pointer transition-colors ${activeTab === 'summary' ? 'text-indigo-400' : 'text-slate-500'}`}
+              >
+                <BarChart2 className="w-5 h-5" />
+                <span className="text-[10px] font-bold">Analytics</span>
+              </button>
+            </div>
 
           </div>
         </div>

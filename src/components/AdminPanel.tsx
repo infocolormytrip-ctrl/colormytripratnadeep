@@ -28,7 +28,9 @@ import {
   LogOut,
   Mail,
   Clock,
-  Paperclip
+  Paperclip,
+  Phone,
+  Menu
 } from 'lucide-react';
 import { Review } from '../types';
 
@@ -103,8 +105,8 @@ function ReviewsPanel({ reviews, addReview, deleteReview, showToast }: ReviewsPa
 
       {/* Add Review Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-slate-900 border-x border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-indigo-950/60 to-slate-900">
               <div>
                 <h4 className="text-sm font-black text-white">Add Customer Review</h4>
@@ -998,8 +1000,8 @@ function EmailsPanel({
 
       {/* Upload Custom HTML Template Modal */}
       {showTemplateModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-slate-900 border-x border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-indigo-950/60 to-slate-900">
               <div>
                 <h4 className="text-sm font-black text-white">Create Custom Email Template</h4>
@@ -1138,6 +1140,10 @@ export default function AdminPanel() {
   // Active view tabs
   const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website' | 'reviews' | 'emails'>('enquiries');
   
+  // Mobile responsive views states
+  const [showMoreDrawer, setShowMoreDrawer] = useState<boolean>(false);
+  const [expandedEnqId, setExpandedEnqId] = useState<string | null>(null);
+
   // Status filters for enquiries
   const [enqFilter, setEnqFilter] = useState<string>('all');
  
@@ -1689,8 +1695,53 @@ export default function AdminPanel() {
       {/* Right sliding panel */}
       <div className="w-full h-full bg-slate-950 flex flex-col flex-1">
         
+        {/* Mobile Header (Rendered on viewport < 768px when logged in) */}
+        {isAdminLoggedIn && (
+          <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-indigo-650 rounded-lg">
+                <Database className="w-4.5 h-4.5 text-white" />
+              </div>
+              <h2 className="text-sm font-sans font-black tracking-tight">CMT Admin Desk</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <NotificationBell
+                notifications={notifications.filter(n => n.userUid === 'admin' || !n.affiliateId)}
+                onMarkAsRead={markNotificationAsRead}
+                onMarkAllAsRead={() => markAllNotificationsAsRead('admin')}
+              />
+              <button
+                onClick={logout}
+                className="p-1.5 text-rose-400 hover:text-rose-350 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                title="Log Out Admin"
+              >
+                <LogOut className="w-4.5 h-4.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Header when NOT logged in */}
+        {!isAdminLoggedIn && (
+          <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-indigo-650 rounded-lg">
+                <Lock className="w-4 h-4 text-white" />
+              </div>
+              <h2 className="text-sm font-sans font-black tracking-tight">CMT Admin</h2>
+            </div>
+            <button
+              onClick={() => navigate('/')}
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+              title="Back to website"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
         {/* Header Desk */}
-        <div className="bg-slate-900 text-white p-4 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-800">
+        <div className="hidden md:flex bg-slate-900 text-white p-4 md:px-6 md:py-4 items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-650 rounded-xl shadow-inner">
               <Database className="w-5 h-5 text-white animate-pulse" />
@@ -1753,14 +1804,22 @@ export default function AdminPanel() {
               >
                 Sign In with Google
               </button>
+              {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+                <button
+                  onClick={localAdminBypass}
+                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-850 text-indigo-400 border border-indigo-900/50 hover:border-indigo-700 text-xs font-bold rounded-xl cursor-pointer transition-all"
+                >
+                  [Dev Bypass] Log In as Admin
+                </button>
+              )}
             </div>
           </div>
         ) : (
           /* Real Administrative Panel controls */
-          <div className="grow flex flex-col md:flex-row overflow-hidden">
+          <div className="grow flex flex-col md:flex-row overflow-hidden relative">
             
             {/* Sidebar menu categories */}
-            <div className="md:w-60 bg-slate-900 border-r border-slate-800 p-4 space-y-1.5 shrink-0 flex md:flex-col gap-2 md:gap-0 overflow-x-auto md:overflow-x-visible">
+            <div className="hidden md:flex md:w-60 bg-slate-900 border-r border-slate-800 p-4 space-y-1.5 shrink-0 md:flex-col overflow-x-auto md:overflow-x-visible">
               
               <button
                 onClick={() => setPanelTab('enquiries')}
@@ -1924,7 +1983,7 @@ export default function AdminPanel() {
             </div>
 
             {/* Display Body Content Panel */}
-            <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100">
+            <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100 pb-24 md:pb-6">
                
               {/* ENQUIRIES TAB LAYOUT */}
               {panelTab === 'enquiries' && (
@@ -1949,33 +2008,259 @@ export default function AdminPanel() {
                         />
                       </div>
 
-                      {/* Filter buttons */}
-                      <div className="flex flex-wrap gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 overflow-x-auto">
-                        {['all', 'Enquired', 'Under Processing', 'Under Follow-up', 'Onboarded', 'Completed', 'Cancelled'].map((status) => (
-                          <button
-                            key={status}
-                            onClick={() => setEnqFilter(status)}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold capitalize cursor-pointer transition-colors whitespace-nowrap ${
-                              enqFilter === status
-                                ? 'bg-indigo-600 text-white shadow-sm'
-                                : 'text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            {status === 'all' ? 'All' : status}
-                          </button>
-                        ))}
+                      {/* Status Filter Dropdown */}
+                      <div className="relative">
+                        <select
+                          value={enqFilter}
+                          onChange={(e) => setEnqFilter(e.target.value)}
+                          className="appearance-none w-full sm:w-52 pl-3 pr-8 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+                        >
+                          <option value="all">All</option>
+                          <option value="Enquired">Enquired</option>
+                          <option value="Under Processing">Under Processing</option>
+                          <option value="Under Follow-up">Under Follow-up</option>
+                          <option value="Onboarded">Onboarded</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <svg className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
                       </div>
                     </div>
                   </div>
 
                   {filteredEnquiries.length === 0 ? (
                     <div className="p-12 text-center bg-slate-900 rounded-2xl border border-slate-800">
-                      <Inbox className="w-10 h-10 text-slate-600 mx-auto mb-3 animate-bounce" />
-                      <p className="text-slate-400 font-medium text-xs sm:text-sm">No enquiries found matching criteria.</p>
+                      <Inbox className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-500 font-semibold text-sm">No enquiries found.</p>
                     </div>
                   ) : (
-                    /* Enquiries list table layout */
-                    <div className="overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
+                    <>
+
+                    {/* Enquiries list card layout for mobile */}
+                    <div className="block md:hidden space-y-4">
+                      {filteredEnquiries.map((enq) => {
+                        const linkedAffiliate = affiliates?.find(a => a.id === enq.affiliateId);
+                        const displayAffiliateName = enq.promoCode ? (linkedAffiliate ? linkedAffiliate.fullName : (enq.affiliateName || 'Unknown Affiliate')) : '-';
+                        const displayPromoCode = enq.promoCode || '-';
+                        
+                        let displayCommission = 'Pending Confirmation';
+                        const isOnboardedOrLater = ['Onboarded', 'Completed', 'Cancelled'].includes(enq.bookingStatus || enq.status);
+                        
+                        if (!enq.affiliateId) {
+                          displayCommission = '-';
+                        } else if (isOnboardedOrLater) {
+                          if (enq.calculatedCommission != null) {
+                            displayCommission = `₹${enq.calculatedCommission.toLocaleString()}`;
+                          } else {
+                            const finalAmt = enq.finalNegotiatedAmount || 0;
+                            const val = enq.commissionValue || 0;
+                            if (enq.commissionType === 'Percentage') {
+                              displayCommission = `₹${Math.round(finalAmt * (val / 100)).toLocaleString()}`;
+                            } else {
+                              displayCommission = `₹${Math.round(val).toLocaleString()}`;
+                            }
+                          }
+                        }
+
+                        const isExpanded = expandedEnqId === enq.id;
+                        const status = enq.bookingStatus || enq.status;
+
+                        // Status colors helper
+                        const getStatusColor = (st: string) => {
+                          switch (st) {
+                            case 'Onboarded': return 'bg-emerald-950 border border-emerald-900/40 text-emerald-400';
+                            case 'Completed': return 'bg-indigo-950 border border-indigo-900/40 text-indigo-400';
+                            case 'Cancelled': return 'bg-rose-955 border border-rose-900/40 text-rose-455';
+                            case 'Under Processing': return 'bg-blue-955 border border-blue-900/40 text-blue-400';
+                            case 'Under Follow-up': return 'bg-amber-955 border border-amber-900/40 text-amber-400';
+                            default: return 'bg-slate-900 border border-slate-800 text-slate-400';
+                          }
+                        };
+
+                        return (
+                          <div key={enq.id} className="bg-slate-900 rounded-2xl border border-slate-800 p-4 shadow-xl space-y-3 font-sans">
+                            {/* Card Header Info */}
+                            <div className="flex justify-between items-start gap-2">
+                              <div>
+                                <h4 className="font-extrabold text-white text-sm sm:text-base leading-snug">{enq.name}</h4>
+                                <p className="text-[10px] text-slate-500 font-mono mt-0.5">{new Date(enq.createdAt).toLocaleDateString()}</p>
+                              </div>
+                              <select
+                                value={status}
+                                onChange={(e) => handleStatusChange(enq.id, e.target.value as any)}
+                                className={`text-[11px] font-extrabold rounded-lg p-1.5 focus:outline-none cursor-pointer ${getStatusColor(status)}`}
+                              >
+                                <option value="Enquired" className="bg-slate-950 text-white">Enquired</option>
+                                <option value="Under Processing" className="bg-slate-950 text-white">Under Processing</option>
+                                <option value="Under Follow-up" className="bg-slate-950 text-white">Under Follow-up</option>
+                                <option value="Onboarded" className="bg-slate-950 text-white">Onboarded</option>
+                                <option value="Completed" className="bg-slate-950 text-white">Completed</option>
+                                <option value="Cancelled" className="bg-slate-950 text-white">Cancelled</option>
+                              </select>
+                            </div>
+
+                            {/* Core Details */}
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs pt-2 border-t border-slate-800/40">
+                              <div>
+                                <span className="text-[10px] text-slate-500 uppercase font-mono block">Destination</span>
+                                <span className="font-bold text-white block truncate" title={enq.destination}>{enq.destination}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-500 uppercase font-mono block">Travel Date</span>
+                                <span className="font-bold text-indigo-400 block">
+                                  {enq.travelDate
+                                    ? new Date(enq.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                                    : '—'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] text-slate-500 uppercase font-mono block">Est. Amount</span>
+                                <span className="font-bold text-slate-350 block">
+                                  {enq.estimatedBookingAmount != null ? `₹${enq.estimatedBookingAmount.toLocaleString()}` : (enq.bookingAmount != null ? `₹${enq.bookingAmount.toLocaleString()}` : '—')}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-500 uppercase font-mono block">Final Negotiated</span>
+                                <span className="font-extrabold text-emerald-400 block">
+                                  {enq.finalNegotiatedAmount != null ? `₹${enq.finalNegotiatedAmount.toLocaleString()}` : '—'}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Contact Links & Toggle */}
+                            <div className="flex justify-between items-center pt-2 border-t border-slate-800/40 gap-2">
+                              <div className="flex gap-2">
+                                {enq.phone && (
+                                  <a
+                                    href={`tel:${enq.phone}`}
+                                    className="p-2 bg-indigo-950/40 text-indigo-400 border border-indigo-900 rounded-lg hover:bg-indigo-900/60"
+                                    title="Call Customer"
+                                  >
+                                    <Phone className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                                {enq.email && (
+                                  <a
+                                    href={`mailto:${enq.email}`}
+                                    className="p-2 bg-indigo-950/40 text-indigo-400 border border-indigo-900 rounded-lg hover:bg-indigo-900/60"
+                                    title="Email Customer"
+                                  >
+                                    <Mail className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                              
+                              <button
+                                onClick={() => setExpandedEnqId(isExpanded ? null : enq.id)}
+                                className="text-xs font-bold text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer py-1"
+                              >
+                                <span>{isExpanded ? 'Hide Controls' : 'Show Actions & Info'}</span>
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                              </button>
+                            </div>
+
+                            {/* Collapsible Info/Actions */}
+                            {isExpanded && (
+                              <div className="pt-3 border-t border-slate-800 space-y-3 animate-fade-in text-xs">
+                                <div className="grid grid-cols-2 gap-3 bg-slate-950 p-3 rounded-xl border border-slate-850">
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Promo Code</span>
+                                    <span className="font-mono font-bold text-slate-300">{displayPromoCode}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Affiliate</span>
+                                    <span className="font-bold text-slate-300 block truncate" title={displayAffiliateName}>{displayAffiliateName}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Commission</span>
+                                    <span className={`font-bold ${displayCommission === 'Pending Confirmation' ? 'text-slate-500 italic' : 'text-emerald-400'}`}>{displayCommission}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase font-mono block">Travelers Count</span>
+                                    <span className="font-bold text-slate-350">{enq.travelers ? `${enq.travelers} Pax` : '1 Pax'}</span>
+                                  </div>
+                                </div>
+
+                                {enq.message && (
+                                  <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-850">
+                                    <span className="text-[10px] text-slate-500 uppercase font-mono block mb-1">Message / Request</span>
+                                    <p className="text-slate-300 text-xs italic leading-relaxed">"{enq.message}"</p>
+                                  </div>
+                                )}
+
+                                {/* Negotiated amount edit */}
+                                <div className="flex flex-col gap-1.5 p-3 bg-slate-950 rounded-xl border border-slate-850">
+                                  <label className="text-[10px] text-slate-500 uppercase font-mono">Edit Final Negotiated Amount (₹)</label>
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="number"
+                                      placeholder="Enter final price..."
+                                      value={tempFinalAmounts[enq.id] ?? enq.finalNegotiatedAmount ?? ''}
+                                      onChange={(e) => setTempFinalAmounts({ ...tempFinalAmounts, [enq.id]: e.target.value })}
+                                      className="flex-grow px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg font-bold text-white focus:outline-none focus:border-indigo-500"
+                                    />
+                                    {(tempFinalAmounts[enq.id] !== undefined && tempFinalAmounts[enq.id] !== String(enq.finalNegotiatedAmount ?? '')) && (
+                                      <button
+                                        onClick={() => handleSaveFinalAmount(enq.id, tempFinalAmounts[enq.id])}
+                                        className="px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold transition-all text-xs flex items-center justify-center gap-1 cursor-pointer"
+                                      >
+                                        <Save className="w-3.5 h-3.5" />
+                                        <span>Save</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Commission Status selection */}
+                                {enq.affiliateId && (
+                                  <div className="flex flex-col gap-1.5 p-3 bg-slate-950 rounded-xl border border-slate-850">
+                                    <label className="text-[10px] text-slate-500 uppercase font-mono">Commission Payout Status</label>
+                                    <select
+                                      value={enq.commissionStatus || 'Pending Confirmation'}
+                                      onChange={(e) => handleCommissionStatusChange(enq.id, e.target.value as any)}
+                                      disabled={!isOnboardedOrLater}
+                                      className="w-full text-xs font-bold bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-indigo-500"
+                                    >
+                                      <option value="Pending Confirmation">Pending Confirmation</option>
+                                      <option value="Generated">Generated</option>
+                                      <option value="Processing">Processing</option>
+                                      <option value="Processed">Processed</option>
+                                      <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                  </div>
+                                )}
+
+                                {/* Extra details + Delete Button */}
+                                <div className="flex justify-between items-center pt-2">
+                                  <span className="text-[10px] text-slate-500">ID: {enq.id}</span>
+                                  <button
+                                    onClick={async () => {
+                                      if (window.confirm('Permanently delete this enquiry?')) {
+                                        try {
+                                          await deleteEnquiry(enq.id);
+                                          showToast('success', 'Enquiry Deleted', 'The enquiry was permanently deleted.');
+                                        } catch (err) {
+                                          showToast('error', 'Delete Failed', 'Failed to delete enquiry.');
+                                        }
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 bg-rose-955 text-rose-455 hover:bg-rose-900 border border-rose-900 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer animate-pulse"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete Enquiry</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Desktop Enquiries list table layout */}
+                    <div className="hidden md:block overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-xl">
                       <table className="min-w-full text-xs text-left">
                         <thead>
                           <tr className="border-b border-slate-800 bg-slate-900 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -2141,7 +2426,7 @@ export default function AdminPanel() {
                                         }
                                       }
                                     }}
-                                    className="p-1.5 text-rose-500 hover:bg-rose-950/40 rounded-lg transition-colors"
+                                    className="p-1.5 text-rose-500 hover:bg-rose-955/40 rounded-lg transition-colors"
                                     title="Delete enquiry"
                                   >
                                     <Trash2 className="w-4 h-4" />
@@ -2153,7 +2438,10 @@ export default function AdminPanel() {
                         </tbody>
                       </table>
                     </div>
+                    </>
                   )}
+
+
 
                 </div>
               )}
@@ -2191,8 +2479,8 @@ export default function AdminPanel() {
 
                   {/* Package Add / Edit Modal */}
                   {showPkgAdd && (
-                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-                      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl my-8 animate-fade-in text-white">
+                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-end sm:items-start justify-center p-0 sm:p-4 overflow-y-auto">
+                      <div className="relative bg-slate-900 border-x border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto my-0 sm:my-8 animate-slide-up sm:animate-fade-in text-white">
                       <div className="bg-indigo-650 rounded-t-2xl px-6 py-4 flex items-center justify-between border-b border-indigo-700">
                         <div>
                           <h4 className="font-black text-white text-base">{pkgEditingId ? 'Edit Travel Package' : 'New Travel Package'}</h4>
@@ -2362,8 +2650,8 @@ export default function AdminPanel() {
                   )}
 
                   {showPkgBulkAdd && (
-                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-                      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl animate-fade-in text-white">
+                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+                      <div className="relative bg-slate-900 border-x border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in text-white">
                       <div className="bg-indigo-650 rounded-t-2xl px-6 py-4 flex items-center justify-between border-b border-indigo-700">
                         <div>
                           <h4 className="font-black text-white text-base">Bulk Package Upload</h4>
@@ -2399,7 +2687,7 @@ export default function AdminPanel() {
                   )}
 
                   {/* Dynamic packages listing table */}
-                  <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+                  <div className="hidden md:block bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-900 border-b border-slate-800 text-[10px] font-black uppercase text-slate-400 tracking-wider">
@@ -2460,6 +2748,62 @@ export default function AdminPanel() {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Mobile Package Cards */}
+                  <div className="block md:hidden space-y-4">
+                    {packages.map((pkg) => (
+                      <div key={pkg.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-md">
+                        <div className="flex gap-3">
+                          <img
+                            src={pkg.image}
+                            alt={pkg.title}
+                            className="w-14 h-14 rounded-xl object-cover bg-slate-950 shrink-0 border border-slate-800"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[9px] font-black uppercase bg-indigo-950 border border-indigo-900/40 text-indigo-400 px-1.5 py-0.5 rounded-md">
+                              {pkg.category}
+                            </span>
+                            <h4 className="font-bold text-white text-sm mt-1.5 truncate">{pkg.title}</h4>
+                            <span className="text-[10px] text-slate-500 block">{pkg.location}</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-800/60 text-xs">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block font-mono">Starting Price</span>
+                            <span className="font-black text-white text-sm block mt-0.5">₹{pkg.price.toLocaleString('en-IN')}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-500 block font-mono">Duration</span>
+                            <span className="font-semibold text-slate-300 text-xs block mt-0.5">{pkg.duration}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button
+                            onClick={() => openPackageEditor(pkg)}
+                            className="px-3.5 py-1.5 bg-emerald-950/40 text-emerald-450 border border-emerald-900 hover:bg-emerald-900/60 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Edit Package
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm(`Permanently delete "${pkg.title}"?`)) {
+                                try {
+                                  await deletePackage(pkg.id);
+                                  showToast('success', 'Package Deleted', `"${pkg.title}" has been deleted.`);
+                                } catch (e) {
+                                  showToast('error', 'Delete Failed', 'Failed to delete package.');
+                                }
+                              }
+                            }}
+                            className="px-3.5 py-1.5 bg-rose-955/40 text-rose-455 border border-rose-900 hover:bg-rose-900/60 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               {/* BLOG ARTICLES TAB LAYOUT */}
@@ -2487,8 +2831,8 @@ export default function AdminPanel() {
 
                   {/* Blog Add / Edit Modal */}
                   {showBlogAdd && (
-                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center p-4 overflow-y-auto">
-                      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-3xl my-8 animate-fade-in text-white">
+                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-end sm:items-start justify-center p-0 sm:p-4 overflow-y-auto">
+                      <div className="relative bg-slate-900 border-x border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto my-0 sm:my-8 animate-slide-up sm:animate-fade-in text-white">
                       
                       <div className="bg-indigo-650 rounded-t-2xl px-6 py-4 flex items-center justify-between border-b border-indigo-700">
                         <div>
@@ -2718,7 +3062,7 @@ export default function AdminPanel() {
                   {/* Blog articles list rows */}
                   <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
                     {blogs.map((post) => (
-                      <div key={post.id} className="p-4 flex items-center justify-between gap-4 border-b border-slate-800/60 last:border-b-0 text-slate-300 hover:bg-slate-850/40 transition-colors">
+                      <div key={post.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-800/60 last:border-b-0 text-slate-300 hover:bg-slate-850/40 transition-colors">
                         <div className="flex items-center gap-3">
                           <img
                             src={post.image}
@@ -2727,18 +3071,18 @@ export default function AdminPanel() {
                             referrerPolicy="no-referrer"
                           />
                           <div>
-                            <h4 className="font-bold text-white text-xs sm:text-sm">{post.title}</h4>
-                            <p className="text-[10px] text-slate-500 font-semibold">{post.author} • {new Date(post.createdAt).toLocaleDateString()}</p>
+                            <h4 className="font-bold text-white text-xs sm:text-sm line-clamp-1">{post.title}</h4>
+                            <p className="text-[10px] text-slate-500 font-semibold">{post.author || 'ColorMyTrip'} • {new Date(post.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
                           <button
                             onClick={() => openBlogEditor(post)}
-                            className="p-2 bg-emerald-950/40 text-emerald-450 border border-emerald-900 hover:bg-emerald-900/60 rounded-lg cursor-pointer"
+                            className="p-2 bg-emerald-950/40 text-emerald-455 border border-emerald-900 hover:bg-emerald-900/60 rounded-lg cursor-pointer"
                             title="Edit post"
                           >
-                            <Save className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => {
@@ -2746,7 +3090,7 @@ export default function AdminPanel() {
                                 deleteBlog(post.id);
                               }
                             }}
-                            className="p-2 bg-indigo-950/40 text-indigo-400 border border-indigo-900 hover:bg-indigo-900/60 rounded-lg cursor-pointer"
+                            className="p-2 bg-rose-955/40 text-rose-455 border border-rose-900 hover:bg-rose-900/60 rounded-lg cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -2780,8 +3124,8 @@ export default function AdminPanel() {
                   </div>
 
                   {showOfferAdd && (
-                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-                      <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg animate-fade-in text-white">
+                    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+                      <div className="relative bg-slate-900 border-x border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in text-white">
                       <div className="bg-indigo-650 rounded-t-2xl px-6 py-4 flex items-center justify-between border-b border-indigo-700">
                         <div>
                           <h4 className="font-black text-white text-base">{offerEditingId ? 'Edit Offer Banner' : 'New Offer Banner'}</h4>
@@ -3364,8 +3708,8 @@ export default function AdminPanel() {
 
                   {/* Video Upload Modal */}
                   {showVideoAdd && (
-                    <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-                      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-md shadow-2xl overflow-hidden text-white animate-fade-in">
+                    <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-xs">
+                      <div className="bg-slate-900 border-x border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl overflow-hidden text-white animate-slide-up sm:animate-fade-in">
                         <div className="bg-indigo-650 text-white p-5 flex items-center justify-between border-b border-indigo-700">
                           <h4 className="font-black text-lg">Upload Video Testimonial</h4>
                           <button onClick={() => setShowVideoAdd(false)} className="hover:bg-indigo-700 p-1 rounded cursor-pointer">
@@ -3542,6 +3886,129 @@ export default function AdminPanel() {
               )}
 
             </div>
+
+            {/* Mobile Bottom Tab Bar */}
+            <div className="md:hidden fixed bottom-0 inset-x-0 bg-slate-900 border-t border-slate-800 px-4 py-2 flex items-center justify-around z-45 safe-bottom shrink-0">
+              <button
+                onClick={() => { setPanelTab('enquiries'); setShowMoreDrawer(false); }}
+                className={`flex flex-col items-center gap-1 p-2 relative cursor-pointer ${panelTab === 'enquiries' ? 'text-indigo-400' : 'text-slate-400'}`}
+              >
+                <Inbox className="w-5 h-5" />
+                <span className="text-[10px] font-bold">Enquiries</span>
+                {enquiries.length > 0 && (
+                  <span className="absolute top-1 right-2 w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                )}
+              </button>
+
+              <button
+                onClick={() => { setPanelTab('packages'); setShowMoreDrawer(false); }}
+                className={`flex flex-col items-center gap-1 p-2 cursor-pointer ${panelTab === 'packages' ? 'text-indigo-400' : 'text-slate-400'}`}
+              >
+                <Globe className="w-5 h-5" />
+                <span className="text-[10px] font-bold">Packages</span>
+              </button>
+
+              <button
+                onClick={() => { setPanelTab('reviews'); setShowMoreDrawer(false); }}
+                className={`flex flex-col items-center gap-1 p-2 cursor-pointer ${panelTab === 'reviews' ? 'text-indigo-400' : 'text-slate-400'}`}
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span className="text-[10px] font-bold">Reviews</span>
+              </button>
+
+              <button
+                onClick={() => { setPanelTab('emails'); setShowMoreDrawer(false); }}
+                className={`flex flex-col items-center gap-1 p-2 cursor-pointer ${panelTab === 'emails' ? 'text-indigo-400' : 'text-slate-400'}`}
+              >
+                <Mail className="w-5 h-5" />
+                <span className="text-[10px] font-bold">Emails</span>
+              </button>
+
+              <button
+                onClick={() => setShowMoreDrawer(prev => !prev)}
+                className={`flex flex-col items-center gap-1 p-2 cursor-pointer ${['blogs', 'offers', 'videos', 'promoCodes', 'website'].includes(panelTab) ? 'text-indigo-400' : 'text-slate-400'}`}
+              >
+                <Menu className={`w-5 h-5 transition-transform duration-300 ${showMoreDrawer ? 'rotate-90 text-indigo-400' : ''}`} />
+                <span className="text-[10px] font-bold">More</span>
+              </button>
+            </div>
+
+            {/* More Drawer Bottom Sheet */}
+            {showMoreDrawer && (
+              <div className="md:hidden fixed inset-0 z-48 bg-slate-950/80 backdrop-blur-xs flex items-end justify-center animate-fade-in">
+                {/* Close area */}
+                <div className="absolute inset-0" onClick={() => setShowMoreDrawer(false)} />
+                
+                <div className="relative bg-slate-900 border-t border-slate-800 rounded-t-3xl w-full max-h-[70vh] overflow-y-auto p-6 z-49 space-y-4 animate-slide-up text-white pb-12">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Admin Modules</h3>
+                    <button onClick={() => setShowMoreDrawer(false)} className="text-slate-400 hover:text-white p-1 cursor-pointer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                      onClick={() => { setPanelTab('blogs'); setShowMoreDrawer(false); }}
+                      className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${panelTab === 'blogs' ? 'bg-indigo-950/50 border-indigo-500 text-indigo-400 shadow-md' : 'bg-slate-950/60 border-slate-800 text-slate-350 hover:border-slate-700'}`}
+                    >
+                      <BookOpen className="w-5 h-5 text-indigo-455" />
+                      <span className="text-xs font-bold">Blogs Catalog</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setPanelTab('offers'); setShowMoreDrawer(false); }}
+                      className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${panelTab === 'offers' ? 'bg-indigo-950/50 border-indigo-500 text-indigo-400 shadow-md' : 'bg-slate-950/60 border-slate-800 text-slate-355 hover:border-slate-700'}`}
+                    >
+                      <Megaphone className="w-5 h-5 text-indigo-455" />
+                      <span className="text-xs font-bold">Offer Marquee</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setPanelTab('videos'); setShowMoreDrawer(false); }}
+                      className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${panelTab === 'videos' ? 'bg-indigo-950/50 border-indigo-500 text-indigo-400 shadow-md' : 'bg-slate-950/60 border-slate-800 text-slate-355 hover:border-slate-700'}`}
+                    >
+                      <Video className="w-5 h-5 text-indigo-455" />
+                      <span className="text-xs font-bold">Video Reels</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setPanelTab('promoCodes'); setShowMoreDrawer(false); }}
+                      className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${panelTab === 'promoCodes' ? 'bg-indigo-950/50 border-indigo-500 text-indigo-400 shadow-md' : 'bg-slate-950/60 border-slate-800 text-slate-355 hover:border-slate-700'}`}
+                    >
+                      <Sparkles className="w-5 h-5 text-indigo-455" />
+                      <span className="text-xs font-bold">Promo Codes</span>
+                    </button>
+
+                    <button
+                      onClick={() => { navigate('/admin/affiliates'); setShowMoreDrawer(false); }}
+                      className="p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 text-slate-355 text-left flex flex-col gap-2 hover:border-slate-700 hover:text-white transition-all cursor-pointer"
+                    >
+                      <Globe className="w-5 h-5 text-indigo-455" />
+                      <span className="text-xs font-bold">Affiliates Mgr</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setPanelTab('website'); setShowMoreDrawer(false); }}
+                      className={`p-3.5 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${panelTab === 'website' ? 'bg-indigo-950/50 border-indigo-500 text-indigo-400 shadow-md' : 'bg-slate-950/60 border-slate-800 text-slate-355 hover:border-slate-700'}`}
+                    >
+                      <Palette className="w-5 h-5 text-indigo-455" />
+                      <span className="text-xs font-bold">Website Settings</span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-slate-800 my-4 pt-4 shrink-0">
+                    <button
+                      onClick={() => { logout(); setShowMoreDrawer(false); }}
+                      className="w-full py-3 bg-rose-955/40 text-rose-455 hover:bg-rose-900 border border-rose-900/30 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Log Out Admin Session</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </div>
         )}

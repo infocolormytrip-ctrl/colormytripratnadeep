@@ -180,8 +180,32 @@ export default function AffiliateManagementPage() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       <div className="w-full h-full bg-slate-950 flex flex-col flex-1">
         
+        {/* Mobile sticky header */}
+        <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800 sticky top-0 z-40 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-indigo-650 rounded-lg">
+              <Database className="w-4 h-4 text-white" />
+            </div>
+            <h2 className="text-sm font-sans font-black tracking-tight">Affiliate Manager</h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <NotificationBell
+              notifications={notifications.filter((n: any) => n.userUid === 'admin' || !n.affiliateId)}
+              onMarkAsRead={markNotificationAsRead}
+              onMarkAllAsRead={() => markAllNotificationsAsRead('admin')}
+            />
+            <button
+              onClick={() => navigate('/admin')}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+              title="Back to Admin"
+            >
+              <X className="w-4.5 h-4.5" />
+            </button>
+          </div>
+        </div>
+
         {/* Header Desk */}
-        <div className="bg-slate-900 text-white p-4 md:px-6 md:py-4 flex items-center justify-between border-b border-slate-800">
+        <div className="hidden md:flex bg-slate-900 text-white p-4 md:px-6 md:py-4 items-center justify-between border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-650 rounded-xl shadow-inner">
               <Database className="w-5 h-5 text-white animate-pulse" />
@@ -215,10 +239,10 @@ export default function AffiliateManagementPage() {
           </div>
         </div>
 
-        <div className="grow flex flex-col md:flex-row overflow-hidden">
+        <div className="grow flex flex-col md:flex-row overflow-hidden relative">
           
           {/* Sidebar menu categories */}
-          <div className="md:w-60 bg-slate-900 border-r border-slate-800 p-4 space-y-1.5 shrink-0 flex md:flex-col gap-2 md:gap-0 overflow-x-auto md:overflow-x-visible">
+          <div className="hidden md:flex md:w-60 bg-slate-900 border-r border-slate-800 p-4 space-y-1.5 shrink-0 md:flex-col overflow-x-auto md:overflow-x-visible">
             
             <button
               onClick={() => navigate('/admin?tab=enquiries')}
@@ -318,7 +342,7 @@ export default function AffiliateManagementPage() {
           </div>
 
           {/* Display Body Content Panel */}
-          <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100 space-y-6">
+          <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100 space-y-6 pb-24 md:pb-6">
             
             <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 md:p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -348,7 +372,8 @@ export default function AffiliateManagementPage() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full text-xs text-left">
                   <thead>
                     <tr className="border-b border-slate-800 bg-slate-900 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
@@ -384,11 +409,51 @@ export default function AffiliateManagementPage() {
                     ))}
                     {paged.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-8 text-center text-slate-550 font-medium">No affiliate partners registered yet.</td>
+                        <td colSpan={6} className="px-3 py-8 text-center text-slate-500 font-medium">No affiliate partners registered yet.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile affiliate cards */}
+              <div className="block md:hidden space-y-3">
+                {paged.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-xs bg-slate-950 border border-slate-800 rounded-2xl">
+                    No affiliates registered yet.
+                  </div>
+                ) : paged.map((affiliate: Affiliate) => (
+                  <div key={affiliate.id} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-md space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-extrabold text-white text-sm">{affiliate.fullName}</h4>
+                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">{affiliate.email}</p>
+                        {affiliate.phone && <p className="text-[10px] text-slate-500 font-mono">{affiliate.phone}</p>}
+                      </div>
+                      <span className={`rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-wider border shrink-0 ${
+                        affiliate.status === 'Active' ? 'bg-emerald-950 text-emerald-450 border-emerald-900' : 'bg-amber-955/60 text-amber-450 border-amber-900/50'
+                      }`}>{affiliate.status}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 border-t border-slate-800/50 pt-3">
+                      <div>
+                        <span className="text-[9px] text-slate-500 uppercase font-mono block">Total Bookings</span>
+                        <span className="font-extrabold text-white text-sm">{affiliate.totalBookings || 0}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] text-slate-500 uppercase font-mono block">Commission Earned</span>
+                        <span className="font-extrabold text-emerald-450 text-sm">₹{(affiliate.totalCommission || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-slate-800/50 justify-end">
+                      <button onClick={() => setStatsAffiliate(affiliate)} className="p-2 bg-indigo-955/40 text-indigo-400 border border-indigo-900/40 rounded-xl hover:bg-indigo-900/60 cursor-pointer transition-colors" title="Stats"><BarChart2 className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => openEdit(affiliate)} className="p-2 bg-slate-950 text-slate-350 border border-slate-800 rounded-xl hover:bg-slate-800 cursor-pointer transition-colors" title="Edit"><Pencil className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => handleStatusToggle(affiliate)} className="p-2 bg-slate-950 text-slate-350 border border-slate-800 rounded-xl hover:bg-slate-800 cursor-pointer transition-colors" title={affiliate.status === 'Active' ? 'Disable' : 'Activate'}>{affiliate.status === 'Active' ? <ShieldAlert className="h-3.5 w-3.5 text-amber-500" /> : <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />}</button>
+                      <button onClick={() => handleDelete(affiliate)} className="p-2 bg-rose-955/30 text-rose-455 border border-rose-900/40 rounded-xl hover:bg-rose-900/60 cursor-pointer transition-colors" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
@@ -404,11 +469,31 @@ export default function AffiliateManagementPage() {
           </div>
         </div>
 
+        {/* Mobile Bottom Tab Bar */}
+        <div className="md:hidden fixed bottom-0 inset-x-0 bg-slate-900 border-t border-slate-800 px-2 py-2 flex items-center justify-around z-45 shrink-0">
+          <button onClick={() => navigate('/admin?tab=enquiries')} className="flex flex-col items-center gap-1 p-2 text-slate-400 cursor-pointer">
+            <Inbox className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Enquiries</span>
+          </button>
+          <button onClick={() => navigate('/admin?tab=packages')} className="flex flex-col items-center gap-1 p-2 text-slate-400 cursor-pointer">
+            <Globe className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Packages</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 p-2 text-indigo-400 cursor-pointer">
+            <Database className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Affiliates</span>
+          </button>
+          <button onClick={() => navigate('/admin')} className="flex flex-col items-center gap-1 p-2 text-slate-400 cursor-pointer">
+            <X className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Back</span>
+          </button>
+        </div>
+
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-2xl rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl animate-fade-in text-white">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 p-0 sm:p-4 backdrop-blur-xs">
+          <div className="w-full max-w-2xl sm:rounded-2xl rounded-t-3xl bg-slate-900 border-x border-t sm:border border-slate-800 p-6 shadow-2xl animate-slide-up sm:animate-fade-in text-white max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.25em] text-indigo-400 font-mono">{editingId ? 'Edit Affiliate' : 'Create Affiliate'}</p>

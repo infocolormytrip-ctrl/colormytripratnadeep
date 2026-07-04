@@ -126,6 +126,7 @@ interface DataContextType {
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   localAdminBypass: () => void;
+  localAffiliateBypass: () => void;
   logout: () => Promise<void>;
 
   validatePromoCode: (
@@ -967,6 +968,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEnquiries(JSON.parse(stored));
     } else {
       setEnquiries([]);
+    }
+  };
+
+  const localAffiliateBypass = () => {
+    if (role === 'affiliate') {
+      setRole('public');
+      setAffiliateId(undefined);
+      setAffiliateProfile(null);
+      setAdminUser(null);
+    } else {
+      setRole('affiliate');
+      setAffiliateId('test-affiliate');
+      setAdminUser({
+        email: 'ratnadeepmukherjee.banti@gmail.com',
+        displayName: 'Mock Affiliate',
+        uid: 'test-affiliate-uid'
+      } as any);
+      setAffiliateProfile({
+        id: 'test-affiliate',
+        fullName: 'Ratnadeep Mukherjee',
+        email: 'ratnadeepmukherjee.banti@gmail.com',
+        phone: '+91 98320 12345',
+        profileImage: '',
+        status: 'Active',
+        joinedDate: '2026-07-04',
+        totalBookings: 5,
+        totalCommission: 15000,
+        totalPaid: 10000,
+        pendingCommission: 5000,
+        totalRevenueGenerated: 150000,
+        lastLogin: '2026-07-05',
+        notes: 'Developer testing affiliate account',
+      });
     }
   };
 
@@ -2773,6 +2807,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         loginWithGoogle,
         localAdminBypass,
+        localAffiliateBypass,
         logout,
 
         footerSettings,
