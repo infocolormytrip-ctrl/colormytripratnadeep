@@ -24,7 +24,8 @@ import {
   Image as ImageIcon,
   Star,
   MessageSquare,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
 import { Review } from '../types';
 
@@ -867,13 +868,24 @@ export default function AdminPanel() {
               onMarkAsRead={markNotificationAsRead}
               onMarkAllAsRead={() => markAllNotificationsAsRead('admin')}
             />
-            <button
-              onClick={() => navigate('/')}
-              className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
-              title="Back to website"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            {isAdminLoggedIn ? (
+              <button
+                onClick={logout}
+                className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                title="Log Out Admin"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="hidden sm:inline">Log Out</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/')}
+                className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                title="Back to website"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1044,16 +1056,6 @@ export default function AdminPanel() {
                 <span className={`ml-auto text-[10px] px-1.5 py-0.5 bg-slate-800 text-slate-350 rounded-full font-bold`}>
                   CMS
                 </span>
-              </button>
-
-              <div className="hidden md:block border-t border-slate-800 my-4 pt-4" />
-              
-              <button
-                onClick={logout}
-                className="w-full text-left px-4 py-3 text-rose-450 hover:bg-slate-800 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 mt-auto transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5 shrink-0" />
-                <span>Log Out Admin</span>
               </button>
 
             </div>
