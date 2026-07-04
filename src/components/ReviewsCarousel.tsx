@@ -132,10 +132,10 @@ export default function ReviewsCarousel({ reviews }: ReviewsCarouselProps) {
             className="w-[85vw] sm:w-[calc(50%-8px)] flex-shrink-0 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative hover:shadow-md hover:border-indigo-300 transition-all duration-300 snap-start flex flex-col justify-between"
           >
             <div>
-              <Quote className="w-8 h-8 text-indigo-50/80 absolute top-4 right-4 z-0 pointer-events-none" />
+              <Quote className="w-8 h-8 text-indigo-100 absolute top-4 right-4 z-0 pointer-events-none" />
               
               <div className="flex items-center gap-3 mb-3 relative z-10">
-                <div className="w-10 h-10 rounded-full bg-linear-to-tr from-indigo-550 to-indigo-650 text-white font-black text-xs sm:text-sm flex items-center justify-center font-mono shrink-0 shadow-xs">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center font-mono shrink-0 shadow-xs">
                   {getInitials(review.name)}
                 </div>
                 <div className="text-left flex-1 min-w-0">
