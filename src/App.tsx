@@ -208,7 +208,7 @@ function AppContent() {
                 </div>
 
                 <PackageCarousel
-                  packages={packages.filter(p => p.featured)}
+                  packages={packages.filter(p => p.featured).slice(0, 8)}
                   variant="featured"
                 />
 
@@ -230,12 +230,50 @@ function AppContent() {
                 </div>
 
                 <PackageCarousel
-                  packages={packages}
+                  packages={packages.slice(0, 8)}
                   variant="bestseller"
                 />
 
               </div>
             </div>
+
+            {/* 3.5. Trekking Trails Carousel */}
+            <div className="py-14 bg-slate-50/50 border-t border-slate-100">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-10">
+                  <div>
+                    <span className="text-xs uppercase font-extrabold tracking-widest text-emerald-600 font-mono block mb-1">Adventure Escapes</span>
+                    <h2 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight leading-none">
+                      Majestic Trekking Trails
+                    </h2>
+                    <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                      Conquer the Himalayas with our professionally guided adventure packages, Basecamps, and scenic summit paths.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSearchCategory('trekking');
+                      setSearchQuery('');
+                      setSelectedPackage(null);
+                      setActiveTab('packages');
+                      window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
+                    className="text-xs sm:text-[13px] font-bold text-emerald-650 hover:text-emerald-750 hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <span>View all treks ({packages.filter(p => p.category === 'trekking').length})</span>
+                    <span>→</span>
+                  </button>
+                </div>
+
+                <PackageCarousel
+                  packages={packages.filter(p => p.category === 'trekking').slice(0, 8)}
+                  variant="featured"
+                />
+
+              </div>
+            </div>
+
 
             {/* 4. Partner Company Logos Infinite Carousel */}
             <div className="py-12 bg-slate-50/20 border-t border-b border-slate-100 overflow-hidden">
