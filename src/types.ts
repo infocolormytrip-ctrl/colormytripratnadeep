@@ -11,6 +11,7 @@ export interface TravelPackage {
   inclusions: string[];
   exclusions: string[];
   featured: boolean;
+  createdAt?: string; // ISO timestamp — used for "newest first" sorting
 }
 
 export interface Enquiry {
@@ -98,11 +99,11 @@ export interface Enquiry {
 
 export interface Booking {
   id: string;
-  enquiryId: string;
-  bookingAmount: number;
+  enquiryId?: string;
+  bookingAmount: number; // maps to total package cost
   bookingDate: string;
   travelDate?: string;
-  paymentStatus: 'Unpaid' | 'Paid';
+  paymentStatus: 'Unpaid' | 'Partial' | 'Paid';
   remarks?: string;
   bookingStatus:
     | 'New'
@@ -125,7 +126,70 @@ export interface Booking {
   updatedAt?: string;
   transactionId?: string | null;
   paidAt?: string | null;
+
+  // New Google Sheet fields for Booking Dashboard
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  source: string;
+  destination: string;
+  packageName: string;
+  travelType: 'Group' | 'Customized';
+  noOfPax: number;
+  noOfRooms: number;
+  travelStartDate: string;
+  travelEndDate: string;
+  totalDays: number;
+  hotelDetails?: string;
+  mealPlan?: string;
+  transportType?: string;
+  pickupPoint?: string;
+  advanceReceived: number;
+  balanceAmount: number;
+  vendorCost: number;
+  profit: number;
+  assignedStaff?: string;
+  specialNotes?: string;
+  voucherSent: 'Yes' | 'No';
+  ticketStatus: 'Pending' | 'Booked' | 'N/A';
+  tripStatus: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
+
+  // Client Payments Tracker fields
+  dueDate?: string;
+  lastPaymentDate?: string;
+  paymentMode?: string;
+  paymentRemarks?: string;
+  // Zoho Invoice integration number
+  zohoInvoiceNo?: string;
 }
+
+export interface VendorPayment {
+  id: string;
+  bookingId: string;
+  vendorType: string;
+  vendorName: string;
+  contact: string;
+  totalCost: number;
+  paid: number;
+  balance: number;
+  status: 'Unpaid' | 'Partial' | 'Paid';
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+
+export interface MasterVendor {
+  id: string;
+  name: string;
+  location: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 
 export interface BlogPost {
   id: string;

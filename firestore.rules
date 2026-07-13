@@ -20,7 +20,7 @@ function isAffiliate() {
 function isAdmin() {
     return request.auth != null &&
         (
-            request.auth.token.email == "info.colormytrip@gmail.com" ||
+            (request.auth.token.email != null && request.auth.token.email.matches("(?i)^(info\\.colormytrip@gmail\\.com|admin@colormytrip\\.com)$")) ||
             (
                 exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
                 get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin" &&
@@ -83,6 +83,11 @@ function isAdmin() {
 		match /bookings/{bookingId} {
 			allow read: if isAdmin() || (isAffiliate() && resource.data.affiliateId == myAffiliateId());
 			allow list: if signedIn();
+			allow create, update, delete: if isAdmin();
+		}
+
+		match /vendorPayments/{vendorPaymentId} {
+			allow read, list: if isAdmin();
 			allow create, update, delete: if isAdmin();
 		}
 
@@ -156,6 +161,10 @@ function isAdmin() {
 		}
 
 		match /scheduledEmails/{docId} {
+			allow read, write: if isAdmin();
+		}
+
+		match /masterVendors/{docId} {
 			allow read, write: if isAdmin();
 		}
 

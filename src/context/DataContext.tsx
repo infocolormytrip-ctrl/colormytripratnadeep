@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db, auth, isPlaceholder } from '../lib/firebase';
 import { isAuthorizedAdminEmail, isAuthorizedAffiliateEmail, resolveRoleByUid, AUTHORIZED_AFFILIATE_EMAILS } from '../lib/role';
+import { isPromoValid, calculateCommission } from '../lib/affiliate';
 import { Role } from '../types/affiliate';
 import {
   collection,
@@ -13,7 +14,8 @@ import {
   onSnapshot,
   query,
   where,
-  limit
+  limit,
+  setDoc
 } from 'firebase/firestore';
 import {
   GoogleAuthProvider,
@@ -31,7 +33,9 @@ import {
   VideoTestimonial,
   OfferMarqueeItem,
   CustomTemplate,
-  ScheduledEmail
+  ScheduledEmail,
+  VendorPayment,
+  MasterVendor
 } from '../types';
 import { Affiliate, AffiliateStatus, ActivityLogEntry, PromoCode, CommissionRecord, NotificationItem } from '../types/affiliate';
 import {
@@ -224,6 +228,20 @@ interface DataContextType {
   deleteAffiliate: (id: string) => Promise<void>;
   toggleAffiliateStatus: (id: string, status: AffiliateStatus) => Promise<void>;
 
+  vendorPayments: VendorPayment[];
+  masterVendors: MasterVendor[];
+  addBookingDirect: (booking: Omit<Booking, 'id' | 'createdAt'>) => Promise<Booking>;
+  addBookingsBulk: (bookings: Omit<Booking, 'id' | 'createdAt'>[]) => Promise<Booking[]>;
+  updateBooking: (id: string, updates: Partial<Booking>) => Promise<void>;
+  updateBookingsBulk: (updates: { id: string; data: Partial<Booking> }[]) => Promise<void>;
+  deleteBooking: (id: string) => Promise<void>;
+  addVendorPayment: (payment: Omit<VendorPayment, 'id' | 'createdAt'>) => Promise<VendorPayment>;
+  updateVendorPayment: (id: string, updates: Partial<VendorPayment>) => Promise<void>;
+  deleteVendorPayment: (id: string) => Promise<void>;
+  addMasterVendor: (vendor: Omit<MasterVendor, 'id' | 'createdAt'>) => Promise<MasterVendor>;
+  updateMasterVendor: (id: string, updates: Partial<MasterVendor>) => Promise<void>;
+  deleteMasterVendor: (id: string) => Promise<void>;
+
   toasts: ToastItem[];
   showToast: (
     type: 'success' | 'error' | 'info' | 'warning' | 'copy',
@@ -270,6 +288,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [vendorPayments, setVendorPayments] = useState<VendorPayment[]>([]);
+  const [masterVendors, setMasterVendors] = useState<MasterVendor[]>([]);
   const [commissions, setCommissions] = useState<CommissionRecord[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -767,7 +787,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load Enquiries (real-time, role-based)
   useEffect(() => {
-    if (!isFirebaseActive || !db) {
+    if (!isFirebaseActive || !db || !auth?.currentUser) {
       const stored = localStorage.getItem('cmt_enquiries');
       if (stored) {
         let list = JSON.parse(stored) as Enquiry[];
@@ -821,8 +841,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isAdminLoggedIn, isFirebaseActive, db, role, affiliateId]);
 
   useEffect(() => {
-    if (!isFirebaseActive || !db) {
-      setBookings([]);
+    if (!isFirebaseActive || !db || !auth?.currentUser) {
+      const stored = localStorage.getItem('cmt_bookings');
+      if (stored) {
+        let list = JSON.parse(stored) as Booking[];
+        if (role === 'affiliate' && affiliateId) {
+          list = list.filter((b) => b.affiliateId === affiliateId);
+        }
+        setBookings(list);
+      } else {
+        setBookings([]);
+      }
       return;
     }
 
@@ -864,8 +893,68 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBookings([]);
   }, [isAdminLoggedIn, isFirebaseActive, db, role, affiliateId]);
 
+  // Load Vendor Payments
   useEffect(() => {
-    if (!isFirebaseActive || !db) {
+    if (!isFirebaseActive || !db || !auth?.currentUser) {
+      const stored = localStorage.getItem('cmt_vendor_payments');
+      if (stored) {
+        setVendorPayments(JSON.parse(stored) as VendorPayment[]);
+      } else {
+        setVendorPayments([]);
+      }
+      return;
+    }
+
+    if (isAdminLoggedIn) {
+      const vendorCol = collection(db, 'vendorPayments');
+      const unsubscribe = onSnapshot(
+        vendorCol,
+        (snapshot) => {
+          const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as VendorPayment));
+          setVendorPayments(list);
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'vendorPayments');
+        }
+      );
+      return unsubscribe;
+    }
+
+    setVendorPayments([]);
+  }, [isAdminLoggedIn, isFirebaseActive, db]);
+
+  // Load Master Vendors
+  useEffect(() => {
+    if (!isFirebaseActive || !db || !auth?.currentUser) {
+      const stored = localStorage.getItem('cmt_master_vendors');
+      if (stored) {
+        setMasterVendors(JSON.parse(stored) as MasterVendor[]);
+      } else {
+        setMasterVendors([]);
+      }
+      return;
+    }
+
+    if (isAdminLoggedIn) {
+      const mvCol = collection(db, 'masterVendors');
+      const unsubscribe = onSnapshot(
+        mvCol,
+        (snapshot) => {
+          const list = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as MasterVendor));
+          setMasterVendors(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+        },
+        (error) => {
+          handleFirestoreError(error, OperationType.LIST, 'masterVendors');
+        }
+      );
+      return unsubscribe;
+    }
+
+    setMasterVendors([]);
+  }, [isAdminLoggedIn, isFirebaseActive, db]);
+
+  useEffect(() => {
+    if (!isFirebaseActive || !db || !auth?.currentUser) {
       setCommissions([]);
       setNotifications([]);
       return;
@@ -1039,27 +1128,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const found = localPromos.find(p => (p.code || '').toLowerCase() === codeLower && !p.deleted);
       if (!found) return { valid: false, reason: 'not_found' };
 
-      const active = found.active !== false;
-      if (!active) return { valid: false, reason: 'inactive' };
-
-      if (packageId && Array.isArray(found.applicablePackages) && found.applicablePackages.length > 0) {
-        if (!found.applicablePackages.includes(packageId)) {
-          return { valid: false, reason: 'package_not_applicable' };
-        }
-      }
-
-      if (found.expiryDate) {
-        const expiry = new Date(found.expiryDate);
-        if (!Number.isNaN(expiry.getTime()) && expiry.getTime() < Date.now()) {
-          return { valid: false, reason: 'expired' };
-        }
-      }
-
-      if (found.usageLimit != null) {
-        if (Number(found.totalUsed ?? 0) >= Number(found.usageLimit)) {
-          return { valid: false, reason: 'limit_reached' };
-        }
-      }
+      const validation = isPromoValid(found, packageId);
+      if (!validation.valid) return { valid: false, reason: validation.reason };
 
       return {
         valid: true,
@@ -1105,34 +1175,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const docSnap = snap.docs[0];
       const data = docSnap.data() as any;
 
-      const active = data.active !== false; // treat missing as active
-      if (!active) return { valid: false, reason: 'inactive' };
+      const promoObj: PromoCode = {
+        id: docSnap.id,
+        ...data,
+      } as PromoCode;
 
-      if (packageId && Array.isArray(data.applicablePackages) && data.applicablePackages.length > 0) {
-        if (!data.applicablePackages.includes(packageId)) {
-          return { valid: false, reason: 'package_not_applicable' };
-        }
-      }
-
-      // expiryDate can be ISO string/date; accept common formats
-      if (data.expiryDate) {
-        const expiry =
-          typeof data.expiryDate === 'string'
-            ? new Date(data.expiryDate)
-            : data.expiryDate?.toDate
-              ? data.expiryDate.toDate()
-              : null;
-
-        if (expiry && !Number.isNaN(expiry.getTime())) {
-          if (expiry.getTime() < Date.now()) return { valid: false, reason: 'expired' };
-        }
-      }
-
-      const usageLimit = data.usageLimit ?? null;
-      const totalUsed = data.totalUsed ?? 0;
-      if (usageLimit !== null && usageLimit !== undefined) {
-        if (Number(totalUsed) >= Number(usageLimit)) return { valid: false, reason: 'limit_reached' };
-      }
+      const validation = isPromoValid(promoObj, packageId);
+      if (!validation.valid) return { valid: false, reason: validation.reason };
 
       const commissionType = data.commissionType ?? undefined;
       const commissionValue = data.commissionValue ?? undefined;
@@ -1278,27 +1327,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const calcCommissionAmount = (enq: Enquiry, bookingAmount: number, override?: number) => {
-    if (typeof override === 'number' && !Number.isNaN(override)) return override;
-
-    // Phase 2: commissionValue already stored with promo; commissionType indicates percent/fixed
-    const type = enq.commissionType;
-    const value = enq.commissionValue;
-
-    if (type === 'Percentage') {
-      const pct = typeof value === 'number' ? value : Number(value ?? NaN);
-      if (!Number.isFinite(pct)) return 0;
-      return Math.round((bookingAmount * pct) / 100);
-    }
-
-    if (type === 'Fixed Amount') {
-      const fixed = typeof value === 'number' ? value : Number(value ?? NaN);
-      if (!Number.isFinite(fixed)) return 0;
-      return Math.round(fixed);
-    }
-
-    // fallback: treat undefined as 0
-    const fallback = typeof value === 'number' ? value : Number(value ?? 0);
-    return Number.isFinite(fallback) ? Math.round(fallback) : 0;
+    return calculateCommission(bookingAmount, enq.commissionType, enq.commissionValue, override);
   };
 
   const convertEnquiryToBooking = async (
@@ -1340,16 +1369,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         commissionAmount,
         createdAt: new Date().toISOString(),
         bookingStatus,
+
+        // Copy required Booking fields from Enquiry
+        clientName: enq.name || '',
+        clientPhone: enq.phone || '',
+        clientEmail: enq.email || '',
+        source: enq.promoCode ? 'Affiliate' : 'Website',
+        destination: enq.destination || '',
+        packageName: enq.destination || '',
+        travelType: 'Customized',
+        noOfPax: Number(enq.travelers || 1),
+        noOfRooms: 1,
+        travelStartDate: payload.travelDate ?? enq.travelDate ?? '',
+        travelEndDate: '',
+        totalDays: 1,
+        advanceReceived: paymentStatus === 'Paid' ? Number(payload.bookingAmount) : 0,
+        balanceAmount: paymentStatus === 'Paid' ? 0 : Number(payload.bookingAmount),
+        vendorCost: 0,
+        profit: Number(payload.bookingAmount),
+        voucherSent: 'No',
+        ticketStatus: 'Pending',
+        tripStatus: 'Upcoming',
       };
 
-      const bookingRef = doc(collection(db, 'bookings'));
-      bookingDoc.id = bookingRef.id;
+      const customId = generateNextBookingId();
+      bookingDoc.id = customId;
 
       // create commission doc
       const commissionDoc: any = {
         id: undefined,
         enquiryId,
-        bookingId: bookingRef.id,
+        bookingId: customId,
         affiliateId: enq.affiliateId ?? '',
         affiliateEmail: enq.affiliateEmail ?? '',
         affiliateName: enq.affiliateName ?? '',
@@ -1385,7 +1435,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ],
       });
 
-      await addDoc(collection(db, 'bookings'), bookingDoc);
+      await setDoc(doc(db, 'bookings', customId), cleanPayload(bookingDoc));
       await addDoc(collection(db, 'commissions'), commissionDoc);
     } catch (err) {
       handleFirestoreError(err, OperationType.WRITE, `booking/convertEnquiryToBooking/${enquiryId}`);
@@ -1470,22 +1520,111 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       commissionAmount?: number;
     }
   ): Promise<void> => {
-    if (!(isFirebaseActive && db)) return;
-
     const enq = enquiries.find((e) => e.id === enquiryId);
     if (!enq) return;
 
+    const bookingStatus = payload.bookingStatus ?? enq.bookingStatus ?? 'New';
+    const bookingAmount = payload.bookingAmount ?? Number(enq.bookingAmount ?? 0);
+    const paymentStatus = payload.paymentStatus ?? enq.paymentStatus ?? 'Unpaid';
+    const bookingDate = payload.bookingDate || new Date().toISOString().split('T')[0];
+    const travelDate = payload.travelDate ?? enq.travelDate ?? null;
+    const commissionAmount = calcCommissionAmount(enq, bookingAmount, payload.commissionAmount);
+    const commissionType = enq.commissionType ?? 'Percentage';
+    const commissionValue = enq.commissionValue ?? 0;
+
+    if (!(isFirebaseActive && db)) {
+      // Local/offline update
+      const storedBookings = localStorage.getItem('cmt_bookings');
+      let list = storedBookings ? (JSON.parse(storedBookings) as Booking[]) : [];
+      const existingIdx = list.findIndex((b) => b.enquiryId === enquiryId);
+
+      if (existingIdx !== -1) {
+        list[existingIdx] = {
+          ...list[existingIdx],
+          bookingAmount,
+          bookingDate,
+          travelDate: travelDate || undefined,
+          paymentStatus: paymentStatus as any,
+          bookingStatus: bookingStatus as any,
+          remarks: payload.remarks || list[existingIdx].remarks || '',
+          commissionAmount,
+          updatedAt: new Date().toISOString(),
+          // Recalculate financial fields for tracker
+          advanceReceived: paymentStatus === 'Paid' ? bookingAmount : list[existingIdx].advanceReceived,
+          balanceAmount: paymentStatus === 'Paid' ? 0 : (bookingAmount - list[existingIdx].advanceReceived),
+          profit: bookingAmount - (list[existingIdx].vendorCost || 0),
+        };
+      } else {
+        const newBooking: Booking = {
+          id: generateNextBookingId(),
+          enquiryId,
+          bookingAmount,
+          bookingDate,
+          travelDate: travelDate || undefined,
+          paymentStatus: paymentStatus as any,
+          bookingStatus: bookingStatus as any,
+          remarks: payload.remarks || '',
+          affiliateId: enq.affiliateId || '',
+          affiliateEmail: enq.affiliateEmail || '',
+          affiliateName: enq.affiliateName || '',
+          commissionAmount,
+          commissionType: enq.commissionType ?? undefined,
+          commissionValue: enq.commissionValue ?? null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          // Default required booking dashboard fields for local storage
+          clientName: enq.name || '',
+          clientPhone: enq.phone || '',
+          clientEmail: enq.email || '',
+          source: enq.promoCode ? 'Affiliate' : 'Website',
+          destination: enq.destination || '',
+          packageName: enq.destination || '',
+          travelType: 'Customized',
+          noOfPax: Number(enq.travelers || 1),
+          noOfRooms: 1,
+          travelStartDate: travelDate || '',
+          travelEndDate: '',
+          totalDays: 1,
+          advanceReceived: paymentStatus === 'Paid' ? bookingAmount : 0,
+          balanceAmount: paymentStatus === 'Paid' ? 0 : bookingAmount,
+          vendorCost: 0,
+          profit: bookingAmount,
+          voucherSent: 'No',
+          ticketStatus: 'Pending',
+          tripStatus: 'Upcoming',
+        };
+        list.unshift(newBooking);
+      }
+      localStorage.setItem('cmt_bookings', JSON.stringify(list));
+      setBookings(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+
+      // Save commission local
+      if (bookingStatus === 'Onboarded' || bookingStatus === 'Completed') {
+        const storedComms = localStorage.getItem('cmt_commissions');
+        let commList = storedComms ? JSON.parse(storedComms) : [];
+        if (!commList.some((c: any) => c.enquiryId === enquiryId)) {
+          commList.unshift({
+            id: 'local-comm-' + Date.now(),
+            enquiryId,
+            affiliateId: enq.affiliateId || '',
+            affiliateEmail: enq.affiliateEmail || '',
+            affiliateName: enq.affiliateName || '',
+            bookingAmount,
+            commissionAmount,
+            commissionType,
+            commissionValue,
+            status: 'approved',
+            createdAt: new Date().toISOString(),
+          });
+          localStorage.setItem('cmt_commissions', JSON.stringify(commList));
+          setCommissions(commList);
+        }
+      }
+      return;
+    }
+
     try {
       const enqRef = doc(db, 'enquiries', enquiryId);
-      const bookingStatus = payload.bookingStatus ?? enq.bookingStatus ?? 'New';
-      const bookingAmount = payload.bookingAmount ?? Number(enq.bookingAmount ?? 0);
-      const paymentStatus = payload.paymentStatus ?? enq.paymentStatus ?? 'Unpaid';
-      const bookingDate = payload.bookingDate || new Date().toISOString();
-      const travelDate = payload.travelDate ?? enq.travelDate ?? null;
-      const commissionAmount = calcCommissionAmount(enq, bookingAmount, payload.commissionAmount);
-      const commissionType = enq.commissionType ?? 'Percentage';
-      const commissionValue = enq.commissionValue ?? 0;
-
       const bookingQuery = query(
         collection(db, 'bookings'),
         where('enquiryId', '==', enquiryId),
@@ -1497,17 +1636,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!bookingSnap.empty) {
         const existingBook = bookingSnap.docs[0];
         bookingId = existingBook.id;
+        const existingData = existingBook.data() as any;
         await updateDoc(doc(db, 'bookings', bookingId), {
           bookingAmount,
           bookingDate,
           travelDate,
           paymentStatus,
           bookingStatus,
-          remarks: payload.remarks || (existingBook.data() as any).remarks || '',
+          remarks: payload.remarks || existingData.remarks || '',
           commissionAmount,
           commissionType,
           commissionValue,
           updatedAt: new Date().toISOString(),
+          // Recalculate financial fields for tracker
+          advanceReceived: paymentStatus === 'Paid' ? bookingAmount : (existingData.advanceReceived ?? 0),
+          balanceAmount: paymentStatus === 'Paid' ? 0 : (bookingAmount - (existingData.advanceReceived ?? 0)),
+          profit: bookingAmount - (existingData.vendorCost ?? 0),
         });
       } else {
         const bookingDoc = {
@@ -1526,9 +1670,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           commissionValue,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
+          // Copy required Booking fields from Enquiry for the Tour Tracker
+          clientName: enq.name || '',
+          clientPhone: enq.phone || '',
+          clientEmail: enq.email || '',
+          source: enq.promoCode ? 'Affiliate' : 'Website',
+          destination: enq.destination || '',
+          packageName: enq.destination || '',
+          travelType: 'Customized',
+          noOfPax: Number(enq.travelers || 1),
+          noOfRooms: 1,
+          travelStartDate: travelDate || '',
+          travelEndDate: '',
+          totalDays: 1,
+          advanceReceived: paymentStatus === 'Paid' ? bookingAmount : 0,
+          balanceAmount: paymentStatus === 'Paid' ? 0 : bookingAmount,
+          vendorCost: 0,
+          profit: bookingAmount,
+          voucherSent: 'No',
+          ticketStatus: 'Pending',
+          tripStatus: 'Upcoming',
         } as any;
-        const bookingRef = await addDoc(collection(db, 'bookings'), bookingDoc);
-        bookingId = bookingRef.id;
+        const customId = generateNextBookingId();
+        bookingDoc.id = customId;
+        await setDoc(doc(db, 'bookings', customId), cleanPayload(bookingDoc));
+        bookingId = customId;
       }
 
       const enquiryUpdates: any = {
@@ -1648,10 +1814,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const list = enquiries.map((e) => {
         if (e.id !== enquiryId) return e;
         const merged = { ...e, ...updates, updatedAt: new Date().toISOString() };
+        if (updates.status) merged.bookingStatus = updates.status as any;
+        else if (updates.bookingStatus) merged.status = updates.bookingStatus as any;
         return merged;
       });
       localStorage.setItem('cmt_enquiries', JSON.stringify(list));
       setEnquiries(list);
+
+      // Trigger local booking sync if status changed
+      const enq = enquiries.find((e) => e.id === enquiryId);
+      if (enq) {
+        const prevStatus = enq.bookingStatus || enq.status;
+        const nextStatus = updates.bookingStatus || updates.status || prevStatus;
+        if (nextStatus !== prevStatus && ['Onboarded', 'Completed', 'Confirmed'].includes(nextStatus)) {
+          updateBookingStatus(enquiryId, {
+            bookingStatus: nextStatus as any,
+            bookingAmount: updates.finalNegotiatedAmount !== undefined ? Number(updates.finalNegotiatedAmount) : (enq.finalNegotiatedAmount ?? enq.estimatedBookingAmount ?? enq.bookingAmount ?? 0),
+            travelDate: enq.travelDate || undefined,
+            paymentStatus: updates.paymentStatus ?? enq.paymentStatus ?? 'Unpaid',
+            remarks: (updates as any).remarks ?? (updates as any).specialNotes ?? (updates as any).message ?? enq.message ?? '',
+          });
+        }
+      }
       return;
     }
 
@@ -1679,6 +1863,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // 1. Check if status changed
       if (nextStatus !== prevStatus) {
+        // Sync to bookings collection automatically
+        if (['Onboarded', 'Completed', 'Confirmed'].includes(nextStatus)) {
+          try {
+            await updateBookingStatus(enquiryId, {
+              bookingStatus: nextStatus as any,
+              bookingAmount: finalUpdates.finalNegotiatedAmount !== undefined ? Number(finalUpdates.finalNegotiatedAmount) : (enq.finalNegotiatedAmount ?? enq.estimatedBookingAmount ?? enq.bookingAmount ?? 0),
+              travelDate: enq.travelDate || undefined,
+              paymentStatus: finalUpdates.paymentStatus ?? enq.paymentStatus ?? 'Unpaid',
+              remarks: (finalUpdates as any).remarks ?? (finalUpdates as any).specialNotes ?? (finalUpdates as any).message ?? enq.message ?? '',
+            });
+          } catch (e) {
+            console.error('Failed to sync booking status inside updateEnquiryFields:', e);
+          }
+        }
+
         await addDoc(collection(db, 'activityLogs'), {
           actorUid: auth?.currentUser?.uid || null,
           actorEmail,
@@ -1911,9 +2110,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const createPackage = async (pkgData: Omit<TravelPackage, 'id'>): Promise<TravelPackage> => {
+    const now = new Date().toISOString();
     const newPkg: TravelPackage = {
       ...pkgData,
       id: Math.random().toString(36).substring(2, 9),
+      createdAt: now, // Always stamp createdAt for newest-first sorting
     };
 
     if (isFirebaseActive && db) {
@@ -1930,9 +2131,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           itinerary: newPkg.itinerary || [],
           inclusions: newPkg.inclusions || [],
           exclusions: newPkg.exclusions || [],
+          createdAt: now, // Save to Firestore so sort persists
         });
         newPkg.id = docRef.id;
         setPackages((prev) => {
+          // Insert at top — newest first
           const list = [newPkg, ...prev];
           localStorage.setItem('cmt_packages', JSON.stringify(list));
           return list;
@@ -2787,6 +2990,312 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await upsertNetaTagsDoc(data);
   };
 
+  const generateNextBookingId = (currentYear?: number): string => {
+    const year = currentYear || new Date().getFullYear();
+    const prefix = `CMT${year}`;
+    let maxSeq = 10;
+    bookings.forEach((b) => {
+      if (b.id && b.id.startsWith(prefix)) {
+        const seqStr = b.id.substring(prefix.length);
+        const seqVal = parseInt(seqStr, 10);
+        if (!isNaN(seqVal) && seqVal > maxSeq) {
+          maxSeq = seqVal;
+        }
+      }
+    });
+    const nextSeq = maxSeq + 1;
+    const padded = String(nextSeq).padStart(3, '0');
+    return `${prefix}${padded}`;
+  };
+
+  const addBookingDirect = async (bookingData: Omit<Booking, 'id' | 'createdAt'>): Promise<Booking> => {
+    const customId = generateNextBookingId();
+    const newBooking: Booking = {
+      ...bookingData,
+      id: customId,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await setDoc(doc(db, 'bookings', customId), cleanPayload(newBooking));
+        return newBooking;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, `bookings/${customId}`);
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_bookings');
+    const list = stored ? (JSON.parse(stored) as Booking[]) : [];
+    list.unshift(newBooking);
+    localStorage.setItem('cmt_bookings', JSON.stringify(list));
+    setBookings(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    return newBooking;
+  };
+
+  const updateBooking = async (id: string, updates: Partial<Booking>): Promise<void> => {
+    const cleanUpdates = cleanPayload(updates);
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await updateDoc(doc(db, 'bookings', id), cleanUpdates);
+        return;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `bookings/${id}`);
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_bookings');
+    if (stored) {
+      let list = JSON.parse(stored) as Booking[];
+      list = list.map((b) => (b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b));
+      localStorage.setItem('cmt_bookings', JSON.stringify(list));
+      setBookings(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    }
+  };
+
+  const deleteBooking = async (id: string): Promise<void> => {
+    if (id && isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await deleteDoc(doc(db, 'bookings', id));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `bookings/${id}`);
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback and state sync
+    const stored = localStorage.getItem('cmt_bookings');
+    if (stored) {
+      let list = JSON.parse(stored) as Booking[];
+      list = list.filter((b) => b.id !== id && b.id !== '');
+      localStorage.setItem('cmt_bookings', JSON.stringify(list));
+      setBookings(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    }
+  };
+
+  const addBookingsBulk = async (bookingsData: Omit<Booking, 'id' | 'createdAt'>[]): Promise<Booking[]> => {
+    const year = new Date().getFullYear();
+    const prefix = `CMT${year}`;
+    let maxSeq = 0;
+    
+    bookings.forEach((b) => {
+      if (b.id && b.id.startsWith(prefix)) {
+        const seqStr = b.id.substring(prefix.length);
+        const seqVal = parseInt(seqStr, 10);
+        if (!isNaN(seqVal) && seqVal > maxSeq) {
+          maxSeq = seqVal;
+        }
+      }
+    });
+
+    const newBookings: Booking[] = bookingsData.map((bookingData) => {
+      maxSeq++;
+      const padded = String(maxSeq).padStart(3, '0');
+      const customId = `${prefix}${padded}`;
+      return {
+        ...bookingData,
+        id: customId,
+        createdAt: new Date().toISOString(),
+      };
+    });
+
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        const { writeBatch, doc } = await import('firebase/firestore');
+        const batch = writeBatch(db);
+        newBookings.forEach((nb) => {
+          const docRef = doc(db, 'bookings', nb.id);
+          batch.set(docRef, cleanPayload(nb));
+        });
+        await batch.commit();
+        return newBookings;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'bookings/bulk');
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_bookings');
+    const list = stored ? (JSON.parse(stored) as Booking[]) : [];
+    list.unshift(...newBookings);
+    localStorage.setItem('cmt_bookings', JSON.stringify(list));
+    setBookings(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    return newBookings;
+  };
+
+  const updateBookingsBulk = async (updates: { id: string; data: Partial<Booking> }[]): Promise<void> => {
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        const { writeBatch, doc } = await import('firebase/firestore');
+        const batch = writeBatch(db);
+        updates.forEach((u) => {
+          const docRef = doc(db, 'bookings', u.id);
+          batch.update(docRef, cleanPayload(u.data));
+        });
+        await batch.commit();
+        return;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, 'bookings/bulk');
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_bookings');
+    if (stored) {
+      let list = JSON.parse(stored) as Booking[];
+      updates.forEach((u) => {
+        list = list.map((b) => (b.id === u.id ? { ...b, ...u.data, updatedAt: new Date().toISOString() } : b));
+      });
+      localStorage.setItem('cmt_bookings', JSON.stringify(list));
+      setBookings(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    }
+  };
+
+  const addVendorPayment = async (paymentData: Omit<VendorPayment, 'id' | 'createdAt'>): Promise<VendorPayment> => {
+    const newPayment: VendorPayment = {
+      ...paymentData,
+      id: '',
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        const docRef = await addDoc(collection(db, 'vendorPayments'), cleanPayload(newPayment));
+        newPayment.id = docRef.id;
+        return newPayment;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'vendorPayments');
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_vendor_payments');
+    const list = stored ? (JSON.parse(stored) as VendorPayment[]) : [];
+    newPayment.id = 'direct-vp-' + Math.random().toString(36).substr(2, 9);
+    list.push(newPayment);
+    localStorage.setItem('cmt_vendor_payments', JSON.stringify(list));
+    setVendorPayments(list);
+    return newPayment;
+  };
+
+  const updateVendorPayment = async (id: string, updates: Partial<VendorPayment>): Promise<void> => {
+    const cleanUpdates = cleanPayload(updates);
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await updateDoc(doc(db, 'vendorPayments', id), cleanUpdates);
+        return;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `vendorPayments/${id}`);
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_vendor_payments');
+    if (stored) {
+      let list = JSON.parse(stored) as VendorPayment[];
+      list = list.map((vp) => (vp.id === id ? { ...vp, ...updates, updatedAt: new Date().toISOString() } : vp));
+      localStorage.setItem('cmt_vendor_payments', JSON.stringify(list));
+      setVendorPayments(list);
+    }
+  };
+
+  const deleteVendorPayment = async (id: string): Promise<void> => {
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await deleteDoc(doc(db, 'vendorPayments', id));
+        return;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `vendorPayments/${id}`);
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_vendor_payments');
+    if (stored) {
+      let list = JSON.parse(stored) as VendorPayment[];
+      list = list.filter((vp) => vp.id !== id);
+      localStorage.setItem('cmt_vendor_payments', JSON.stringify(list));
+      setVendorPayments(list);
+    }
+  };
+
+  const addMasterVendor = async (vendorData: Omit<MasterVendor, 'id' | 'createdAt'>): Promise<MasterVendor> => {
+    const newVendor: MasterVendor = {
+      ...vendorData,
+      id: '',
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        const docRef = await addDoc(collection(db, 'masterVendors'), cleanPayload(newVendor));
+        newVendor.id = docRef.id;
+        return newVendor;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.CREATE, 'masterVendors');
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_master_vendors');
+    const list = stored ? (JSON.parse(stored) as MasterVendor[]) : [];
+    newVendor.id = 'master-vnd-' + Math.random().toString(36).substr(2, 9);
+    list.unshift(newVendor);
+    localStorage.setItem('cmt_master_vendors', JSON.stringify(list));
+    setMasterVendors(list);
+    return newVendor;
+  };
+
+  const updateMasterVendor = async (id: string, updates: Partial<MasterVendor>): Promise<void> => {
+    const cleanUpdates = cleanPayload(updates);
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await updateDoc(doc(db, 'masterVendors', id), cleanUpdates);
+        return;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.UPDATE, `masterVendors/${id}`);
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_master_vendors');
+    if (stored) {
+      let list = JSON.parse(stored) as MasterVendor[];
+      list = list.map((v) => (v.id === id ? { ...v, ...updates } : v));
+      localStorage.setItem('cmt_master_vendors', JSON.stringify(list));
+      setMasterVendors(list);
+    }
+  };
+
+  const deleteMasterVendor = async (id: string): Promise<void> => {
+    if (isFirebaseActive && db && auth?.currentUser) {
+      try {
+        await deleteDoc(doc(db, 'masterVendors', id));
+        return;
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, `masterVendors/${id}`);
+        throw err;
+      }
+    }
+
+    // LocalStorage fallback
+    const stored = localStorage.getItem('cmt_master_vendors');
+    if (stored) {
+      let list = JSON.parse(stored) as MasterVendor[];
+      list = list.filter((v) => v.id !== id);
+      localStorage.setItem('cmt_master_vendors', JSON.stringify(list));
+      setMasterVendors(list);
+    }
+  };
+
 
 
   return (
@@ -2868,6 +3377,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toasts,
         showToast,
         removeToast,
+
+        vendorPayments,
+        masterVendors,
+        addBookingDirect,
+        addBookingsBulk,
+        updateBooking,
+        updateBookingsBulk,
+        deleteBooking,
+        addVendorPayment,
+        updateVendorPayment,
+        deleteVendorPayment,
+        addMasterVendor,
+        updateMasterVendor,
+        deleteMasterVendor,
       }}
     >
       {children}

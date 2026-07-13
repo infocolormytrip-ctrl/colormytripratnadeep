@@ -28,7 +28,8 @@ import {
   Video,
   X,
   Database,
-  LogOut
+  LogOut,
+  Download
 } from 'lucide-react';
 import NotificationBell from '../components/NotificationBell';
 
@@ -132,6 +133,61 @@ export default function AffiliatePortal() {
       (enq.bookingStatus || enq.status || '').toLowerCase().includes(term)
     );
   });
+
+  const downloadCSV = () => {
+    const headers = [
+      'Booking ID',
+      'Customer Name',
+      'Destination',
+      'Travel Date',
+      'Promo Code',
+      'Booking Status',
+      'Estimated Amount',
+      'Final Amount',
+      'Commission',
+      'Commission Status',
+      'Last Updated'
+    ];
+
+    const rows = searchableBookings.map((enq) => {
+      const bookingStatus = enq.bookingStatus || enq.status || 'Enquired';
+      let commissionVal = 'Pending Confirmation';
+      const isOnboardedOrLater = ['Onboarded', 'Completed', 'Cancelled'].includes(bookingStatus);
+      if (isOnboardedOrLater) {
+        if (enq.calculatedCommission != null) commissionVal = String(enq.calculatedCommission);
+        else {
+          const finalAmt = enq.finalNegotiatedAmount || 0;
+          const val = enq.commissionValue || 0;
+          commissionVal = String(enq.commissionType === 'Percentage' ? Math.round(finalAmt * (val / 100)) : val);
+        }
+      }
+      return [
+        enq.id,
+        enq.name,
+        enq.destination,
+        enq.travelDate || '',
+        enq.promoCode || '',
+        bookingStatus,
+        enq.estimatedBookingAmount || enq.bookingAmount || 0,
+        enq.finalNegotiatedAmount || '',
+        commissionVal,
+        enq.commissionStatus || '',
+        enq.updatedAt || enq.createdAt
+      ];
+    });
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `commissions_report_${affiliateIdValue}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -617,15 +673,26 @@ export default function AffiliatePortal() {
                     <h3 className="text-sm font-bold text-white">Linked Booking Enquiries</h3>
                     <p className="text-[10px] text-slate-400 mt-0.5">List of bookings tagged with your coupon codes</p>
                   </div>
-                  <div className="relative w-full sm:max-w-xs">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
-                    <input
-                      type="text"
-                      placeholder="Search bookings..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 py-1.5 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500 placeholder-slate-500"
-                    />
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    <button
+                      onClick={downloadCSV}
+                      disabled={searchableBookings.length === 0}
+                      className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow transition-all shrink-0 uppercase tracking-wide border border-indigo-600/20 active:scale-[0.98]"
+                      title="Export commissions to CSV"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Export CSV</span>
+                    </button>
+                    <div className="relative w-full sm:w-60">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Search bookings..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full rounded-xl border border-slate-800 bg-slate-950 py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500 placeholder-slate-500"
+                      />
+                    </div>
                   </div>
                 </div>
 

@@ -40,7 +40,7 @@ export default function PackageRoute() {
     <PackageDetails
       pkg={pkg}
       onBack={() => {
-        navigate('/');
+        navigate('/packages');
       }}
     />
   );

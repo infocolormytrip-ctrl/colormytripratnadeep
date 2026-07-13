@@ -1,29 +1,29 @@
 import React from 'react';
-import { Compass, Menu, X, ShieldAlert, KeyRound, User as UserIcon } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import logoBlack from "../assets/logo black.png";
+import logoBlack from '../assets/logo black.png';
 
-
-interface NavbarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
-
-export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
+export default function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { isFirebaseActive } = useData();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const navigation = [
-    { name: 'Home', id: 'home' },
-    { name: 'About Us', id: 'about' },
-    { name: 'Packages', id: 'packages' },
-    // { name: 'Gallery', id: 'gallery' }, // Hidden — re-enable when gallery is ready
-    { name: 'Blog', id: 'blog' },
+    { name: 'Home', path: '/' },
+    { name: 'About Us', path: '/about' },
+    { name: 'Packages', path: '/packages' },
+    { name: 'Blog', path: '/blog' },
   ];
 
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
 
-  const message = "Hi ColorMyTrip! I visited your website and would like to know more about your travel packages. Please share the available options. Thank you!";
-
+  const message =
+    'Hi ColorMyTrip! I visited your website and would like to know more about your travel packages. Please share the available options. Thank you!';
   const whatsappLink = `https://wa.me/919474103441?text=${encodeURIComponent(message)}`;
 
   return (
@@ -31,46 +31,50 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
 
-          {/* Logo Brand with custom SVG matching the uploaded image of ColorMyTrip */}
-          <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => setActiveTab('home')}>
-            <img src={logoBlack} alt="ColorMyTrip" className="h-12 w-auto" />
+          {/* Logo */}
+          <div className="flex-shrink-0 flex items-center">
+            <Link to="/">
+              <img src={logoBlack} alt="ColorMyTrip" className="h-12 w-auto" />
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navigation.map((item) => {
-              const isActive = activeTab === item.id;
+              const active = isActive(item.path);
               return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  id={`nav-btn-${item.id}`}
-                  className={`px-4 py-2 rounded-xl text-[14px] font-medium transition-all duration-200 ${isActive
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  id={`nav-link-${item.path.replace('/', '') || 'home'}`}
+                  className={`px-4 py-2 rounded-xl text-[14px] font-medium transition-all duration-200 ${
+                    active
                       ? 'bg-indigo-50 text-indigo-600 shadow-sm border border-indigo-100/50'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/50'
-                    }`}
+                  }`}
                 >
                   {item.name}
-                </button>
+                </Link>
               );
             })}
 
-            {/* Highlighted Button "Contact Us" */}
-            <button
-              onClick={() => setActiveTab('contact')}
-              id="nav-btn-contact"
-              className={`ml-4 px-5 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-300 relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98] ${activeTab === 'contact'
+            {/* Contact Us highlighted button */}
+            <Link
+              to="/contact"
+              id="nav-link-contact"
+              className={`ml-4 px-5 py-2.5 rounded-xl text-[14px] font-semibold transition-all duration-300 relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98] ${
+                isActive('/contact')
                   ? 'bg-slate-900 text-white shadow-md shadow-slate-200'
                   : 'bg-slate-900 text-white shadow-sm hover:shadow-md hover:bg-slate-800'
-                }`}
+              }`}
             >
               <div className="absolute inset-0 w-full h-full bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
               Contact Us
-            </button>
+            </Link>
 
-            {/* Direct WhatsApp Support Button */}
             <div className="h-6 w-[1px] bg-slate-200 mx-3" />
 
+            {/* WhatsApp */}
             <a
               href={whatsappLink}
               target="_blank"
@@ -105,7 +109,6 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
-
         </div>
       </div>
 
@@ -114,37 +117,34 @@ export default function Navbar({ activeTab, setActiveTab }: NavbarProps) {
         <div className="md:hidden bg-white/95 backdrop-blur-md border-b border-slate-100 animate-slide-down">
           <div className="px-2 pt-2 pb-4 space-y-1.5 sm:px-3">
             {navigation.map((item) => {
-              const isActive = activeTab === item.id;
+              const active = isActive(item.path);
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setIsOpen(false);
-                  }}
-                  className={`block w-full text-left px-4 py-3 rounded-xl text-[15px] font-medium transition-colors ${isActive
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={`block w-full text-left px-4 py-3 rounded-xl text-[15px] font-medium transition-colors ${
+                    active
                       ? 'bg-indigo-600 text-white font-semibold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                    }`}
+                  }`}
                 >
                   {item.name}
-                </button>
+                </Link>
               );
             })}
 
-            <button
-              onClick={() => {
-                setActiveTab('contact');
-                setIsOpen(false);
-              }}
-              className={`block w-full text-center px-4 py-3.5 rounded-xl text-[15px] font-semibold transition-colors bg-slate-900 text-white shadow-md shadow-slate-100`}
+            <Link
+              to="/contact"
+              onClick={() => setIsOpen(false)}
+              className="block w-full text-center px-4 py-3.5 rounded-xl text-[15px] font-semibold transition-colors bg-slate-900 text-white shadow-md shadow-slate-100"
             >
               Contact Us (Enquire)
-            </button>
+            </Link>
 
             <div className="border-t border-slate-100 my-3 pt-3 text-center px-4">
               <span className="text-[10px] font-mono text-slate-400">
-                {isFirebaseActive ? "⚡ Connected to Cloud DB" : "📁 Local Storage Sandbox"}
+                {isFirebaseActive ? '⚡ Connected to Cloud DB' : '📁 Local Storage Sandbox'}
               </span>
             </div>
           </div>

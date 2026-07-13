@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from './NotificationBell';
-import { TravelPackage, BlogPost, OfferMarqueeItem, Enquiry, CustomTemplate, ScheduledEmail, EmailAttachment } from '../types';
+import TourTracker from './TourTracker';
+import { TravelPackage, BlogPost, OfferMarqueeItem, Enquiry, Booking, CustomTemplate, ScheduledEmail, EmailAttachment } from '../types';
 import { 
   Inbox, 
   Plus, 
@@ -30,7 +31,10 @@ import {
   Clock,
   Paperclip,
   Phone,
-  Menu
+  Menu,
+  Landmark,
+  CheckSquare,
+  CheckCircle
 } from 'lucide-react';
 import { Review } from '../types';
 
@@ -245,6 +249,7 @@ function ReviewsPanel({ reviews, addReview, deleteReview, showToast }: ReviewsPa
 // ─── Emails Desk Panel Sub-component ──────────────────────────────────────────
 interface EmailsPanelProps {
   enquiries: Enquiry[];
+  bookings: Booking[];
   customTemplates: CustomTemplate[];
   scheduledEmails: ScheduledEmail[];
   saveCustomTemplate: (t: Omit<CustomTemplate, 'id' | 'createdAt'>) => Promise<CustomTemplate>;
@@ -258,6 +263,7 @@ interface EmailsPanelProps {
 
 function EmailsPanel({
   enquiries,
+  bookings,
   customTemplates,
   scheduledEmails,
   saveCustomTemplate,
@@ -269,6 +275,7 @@ function EmailsPanel({
   packages,
 }: EmailsPanelProps) {
   const [selectedEnqId, setSelectedEnqId] = useState('');
+  const [selectedBookingId, setSelectedBookingId] = useState('');
   const [recipientEmails, setRecipientEmails] = useState('');
   const [selectedTmplKey, setSelectedTmplKey] = useState('ack');
   const [emailSubject, setEmailSubject] = useState('');
@@ -287,19 +294,78 @@ function EmailsPanel({
   const [savingTmpl, setSavingTmpl] = useState(false);
   const [runningQueue, setRunningQueue] = useState(false);
 
-  const selectedEnquiry = useMemo(() => enquiries.find(e => e.id === selectedEnqId), [selectedEnqId, enquiries]);
+  // Helper to identify and filter test accounts
+  const isTestAccount = (name = '', email = '') => {
+    const n = (name || '').toLowerCase();
+    const e = (email || '').toLowerCase();
+    return n.includes('test') || e.includes('test') || n.includes('dummy') || e.includes('dummy') || n.includes('demo') || e.includes('demo');
+  };
 
-  const handleDropdownSelect = (enqId: string) => {
-    setSelectedEnqId(enqId);
-    const enq = enquiries.find(e => e.id === enqId);
-    if (enq && enq.email) {
-      setRecipientEmails((prev) => {
-        const current = prev.split(',').map((s) => s.trim()).filter(Boolean);
-        if (!current.includes(enq.email)) {
-          current.push(enq.email);
-        }
-        return current.join(', ');
-      });
+  const filteredEnquiriesForDesk = useMemo(() => {
+    return enquiries.filter(enq => !isTestAccount(enq.name, enq.email));
+  }, [enquiries]);
+
+  const filteredBookingsForDesk = useMemo(() => {
+    return bookings.filter(bk => !isTestAccount(bk.clientName, bk.clientEmail));
+  }, [bookings]);
+
+  const selectedEnquiry = useMemo(() => {
+    if (selectedBookingId) {
+      const bk = bookings.find(b => b.id === selectedBookingId);
+      if (bk) {
+        const enq = enquiries.find(e => e.id === bk.enquiryId);
+        return {
+          id: bk.id,
+          name: bk.clientName,
+          email: bk.clientEmail || '',
+          phone: bk.clientPhone || '',
+          destination: bk.destination || '',
+          travelDate: bk.travelDate || '',
+          packageId: enq?.packageId || '',
+          travelers: bk.noOfPax || 1,
+          message: bk.remarks || '',
+          bookingStatus: 'Onboarded',
+        } as any as Enquiry;
+      }
+    }
+    return enquiries.find(e => e.id === selectedEnqId);
+  }, [selectedEnqId, selectedBookingId, enquiries, bookings]);
+
+  const handleDropdownSelect = (val: string) => {
+    if (!val) {
+      setSelectedEnqId('');
+      setSelectedBookingId('');
+      return;
+    }
+
+    if (val.startsWith('booking-')) {
+      const bId = val.replace('booking-', '');
+      setSelectedEnqId('');
+      setSelectedBookingId(bId);
+      const bk = bookings.find(b => b.id === bId);
+      if (bk && bk.clientEmail) {
+        setRecipientEmails((prev) => {
+          const current = prev.split(',').map((s) => s.trim()).filter(Boolean);
+          if (!current.includes(bk.clientEmail)) {
+            current.push(bk.clientEmail);
+          }
+          return current.join(', ');
+        });
+      }
+    } else if (val.startsWith('enquiry-')) {
+      const eId = val.replace('enquiry-', '');
+      setSelectedBookingId('');
+      setSelectedEnqId(eId);
+      const enq = enquiries.find(e => e.id === eId);
+      if (enq && enq.email) {
+        setRecipientEmails((prev) => {
+          const current = prev.split(',').map((s) => s.trim()).filter(Boolean);
+          if (!current.includes(enq.email)) {
+            current.push(enq.email);
+          }
+          return current.join(', ');
+        });
+      }
     }
   };
 
@@ -704,16 +770,31 @@ function EmailsPanel({
               <label className="block text-[11px] font-bold text-slate-400 mb-1.5">Select Guest / Enquiry</label>
               <div className="relative">
                 <select
-                  value={selectedEnqId}
+                  value={selectedBookingId ? `booking-${selectedBookingId}` : (selectedEnqId ? `enquiry-${selectedEnqId}` : '')}
                   onChange={(e) => handleDropdownSelect(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg text-xs px-3 py-2.5 text-white focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
                 >
                   <option value="" className="bg-slate-950 text-white">-- Choose Guest (Appends Email) --</option>
-                  {enquiries.map((enq) => (
-                    <option key={enq.id} value={enq.id} className="bg-slate-950 text-white">
-                      {enq.name} ({enq.destination})
-                    </option>
-                  ))}
+                  
+                  {filteredBookingsForDesk.length > 0 && (
+                    <optgroup label="Booked Guests" className="bg-slate-950 text-emerald-450 font-bold">
+                      {filteredBookingsForDesk.map((bk) => (
+                        <option key={bk.id} value={`booking-${bk.id}`} className="bg-slate-950 text-slate-200 font-sans font-semibold">
+                          {bk.clientName} ({bk.destination || 'N/A'}) [Booking: {bk.id}]
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+
+                  {filteredEnquiriesForDesk.length > 0 && (
+                    <optgroup label="Enquiries / Leads" className="bg-slate-950 text-indigo-400 font-bold">
+                      {filteredEnquiriesForDesk.map((enq) => (
+                        <option key={enq.id} value={`enquiry-${enq.id}`} className="bg-slate-950 text-slate-200 font-sans font-semibold">
+                          {enq.name} ({enq.destination || 'N/A'})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
                 <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500">
                   <ChevronDown className="w-4 h-4" />
@@ -1086,6 +1167,7 @@ export default function AdminPanel() {
     packages, 
     blogs, 
     enquiries, 
+    bookings,
     videoTestimonials,
     offers,
     affiliates,
@@ -1122,6 +1204,7 @@ export default function AdminPanel() {
     scheduleEmail,
     deleteScheduledEmail,
     updateScheduledEmailStatus,
+    convertEnquiryToBooking,
 
     // CMS settings
     footerSettings,
@@ -1137,8 +1220,18 @@ export default function AdminPanel() {
     markAllNotificationsAsRead
   } = useData();
 
+  // Booking Conversion Modal States
+  const [convertingEnquiry, setConvertingEnquiry] = useState<Enquiry | null>(null);
+  const [conversionForm, setConversionForm] = useState({
+    bookingAmount: '',
+    travelDate: '',
+    paymentStatus: 'Unpaid' as 'Unpaid' | 'Paid',
+    remarks: '',
+    bookingStatus: 'Confirmed' as 'New' | 'Confirmed' | 'Onboarded' | 'Completed' | 'Cancelled',
+  });
+
   // Active view tabs
-  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website' | 'reviews' | 'emails'>('enquiries');
+  const [panelTab, setPanelTab] = useState<'enquiries' | 'packages' | 'blogs' | 'offers' | 'videos' | 'promoCodes' | 'website' | 'reviews' | 'emails' | 'tourTracker'>('enquiries');
   
   // Mobile responsive views states
   const [showMoreDrawer, setShowMoreDrawer] = useState<boolean>(false);
@@ -1157,12 +1250,28 @@ export default function AdminPanel() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab && ['enquiries', 'packages', 'blogs', 'offers', 'videos', 'promoCodes', 'website', 'reviews', 'emails'].includes(tab)) {
+    if (tab && ['enquiries', 'packages', 'blogs', 'offers', 'videos', 'promoCodes', 'website', 'reviews', 'emails', 'tourTracker'].includes(tab)) {
       setPanelTab(tab as any);
     }
   }, []);
 
   const handleStatusChange = async (enqId: string, status: any) => {
+    const enq = enquiries.find(e => e.id === enqId);
+    const bookingStatus = enq?.bookingStatus || enq?.status || 'Enquired';
+    const isAlreadyConverted = ['Onboarded', 'Completed', 'Confirmed'].includes(bookingStatus);
+
+    if (['Onboarded', 'Completed', 'Confirmed'].includes(status) && !isAlreadyConverted && enq) {
+      setConvertingEnquiry(enq);
+      setConversionForm({
+        bookingAmount: String(enq.finalNegotiatedAmount ?? enq.estimatedBookingAmount ?? enq.bookingAmount ?? 0),
+        travelDate: enq.travelDate || '',
+        paymentStatus: 'Unpaid',
+        remarks: '',
+        bookingStatus: status,
+      });
+      return;
+    }
+
     try {
       await updateEnquiryFields(enqId, { status });
       showToast('success', 'Status Updated', `Booking status changed to "${status}" successfully.`);
@@ -1192,6 +1301,25 @@ export default function AdminPanel() {
       showToast('success', 'Commission Updated', `Commission status updated to "${commissionStatus}".`);
     } catch (e) {
       showToast('error', 'Commission Update Failed', String(e));
+    }
+  };
+
+  const handleConversionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!convertingEnquiry) return;
+    try {
+      await convertEnquiryToBooking(convertingEnquiry.id, {
+        bookingAmount: Number(conversionForm.bookingAmount),
+        bookingDate: new Date().toISOString().split('T')[0],
+        travelDate: conversionForm.travelDate || undefined,
+        paymentStatus: conversionForm.paymentStatus,
+        remarks: conversionForm.remarks,
+        bookingStatus: conversionForm.bookingStatus,
+      });
+      showToast('success', 'Lead Converted', `Enquiry from ${convertingEnquiry.name} has been successfully converted to Booking.`);
+      setConvertingEnquiry(null);
+    } catch (err) {
+      showToast('error', 'Conversion Failed', String(err));
     }
   };
 
@@ -1225,45 +1353,6 @@ export default function AdminPanel() {
   const [bAuthor, setBAuthor] = useState('');
   const [bTags, setBTags] = useState('');
   const [blogEditingId, setBlogEditingId] = useState<string | null>(null);
-
-  // WordPress-style Rich Text Editor ref and utilities
-  const blogEditorRef = React.useRef<HTMLDivElement>(null);
-
-  const executeEditorCommand = (command: string, value: string = '') => {
-    document.execCommand(command, false, value);
-    if (blogEditorRef.current) {
-      setBContent(blogEditorRef.current.innerHTML);
-    }
-  };
-
-  const addEditorLink = () => {
-    const url = prompt('Enter the link URL (e.g., https://example.com):');
-    if (url) {
-      const fullUrl = url.match(/^https?:\/\//) ? url : `https://${url}`;
-      executeEditorCommand('createLink', fullUrl);
-    }
-  };
-
-  const addEditorImage = () => {
-    const url = prompt('Enter the image URL:');
-    if (url) {
-      const html = `<img src="${url}" class="rounded-xl max-w-full my-6 shadow-md inline-block" alt="Blog Image" />`;
-      executeEditorCommand('insertHTML', html);
-    }
-  };
-
-  const handleEditorInput = (e: React.FormEvent<HTMLDivElement>) => {
-    setBContent(e.currentTarget.innerHTML);
-  };
-
-  useEffect(() => {
-    if (showBlogAdd && blogEditorRef.current) {
-      if (blogEditorRef.current.innerHTML !== bContent) {
-        blogEditorRef.current.innerHTML = bContent || '<p><br></p>';
-      }
-    }
-  }, [showBlogAdd, blogEditingId]);
-
 
   // Video testimonial form state
   const [vName, setVName] = useState('');
@@ -1301,9 +1390,6 @@ export default function AdminPanel() {
     setBAuthor('');
     setBTags('');
     setBlogEditingId(null);
-    if (blogEditorRef.current) {
-      blogEditorRef.current.innerHTML = '<p><br></p>';
-    }
   };
 
 
@@ -1839,6 +1925,23 @@ export default function AdminPanel() {
               </button>
 
               <button
+                onClick={() => setPanelTab('tourTracker')}
+                className={`w-full text-left px-4 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                  panelTab === 'tourTracker'
+                    ? 'bg-indigo-650 text-white shadow-md shadow-indigo-900/50'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Landmark className="w-5 h-5 shrink-0" />
+                <span>Tour Tracker</span>
+                <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  panelTab === 'tourTracker' ? 'bg-white/20 text-white' : 'bg-slate-850 text-slate-350'
+                }`}>
+                  {bookings.length}
+                </span>
+              </button>
+
+              <button
                 onClick={() => setPanelTab('packages')}
                 className={`w-full text-left px-4 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 transition-colors cursor-pointer ${
                   panelTab === 'packages'
@@ -1984,6 +2087,9 @@ export default function AdminPanel() {
 
             {/* Display Body Content Panel */}
             <div className="grow overflow-y-auto p-4 md:p-6 bg-slate-950 text-slate-100 pb-24 md:pb-6">
+               
+              {/* TOUR TRACKER LAYOUT */}
+              {panelTab === 'tourTracker' && <TourTracker />}
                
               {/* ENQUIRIES TAB LAYOUT */}
               {panelTab === 'enquiries' && (
@@ -2232,25 +2338,50 @@ export default function AdminPanel() {
                                   </div>
                                 )}
 
-                                {/* Extra details + Delete Button */}
+                                {/* Extra details + Action Buttons */}
                                 <div className="flex justify-between items-center pt-2">
                                   <span className="text-[10px] text-slate-500">ID: {enq.id}</span>
-                                  <button
-                                    onClick={async () => {
-                                      if (window.confirm('Permanently delete this enquiry?')) {
-                                        try {
-                                          await deleteEnquiry(enq.id);
-                                          showToast('success', 'Enquiry Deleted', 'The enquiry was permanently deleted.');
-                                        } catch (err) {
-                                          showToast('error', 'Delete Failed', 'Failed to delete enquiry.');
+                                  <div className="flex gap-2">
+                                    {!['Onboarded', 'Completed', 'Confirmed'].includes(enq.bookingStatus || enq.status) ? (
+                                      <button
+                                        onClick={() => {
+                                          setConvertingEnquiry(enq);
+                                          setConversionForm({
+                                            bookingAmount: String(enq.finalNegotiatedAmount ?? enq.estimatedBookingAmount ?? enq.bookingAmount ?? 0),
+                                            travelDate: enq.travelDate || '',
+                                            paymentStatus: 'Unpaid',
+                                            remarks: '',
+                                            bookingStatus: 'Confirmed',
+                                          });
+                                        }}
+                                        className="px-3 py-1.5 bg-emerald-950 text-emerald-400 hover:bg-emerald-900 border border-emerald-900 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <CheckSquare className="w-3.5 h-3.5" />
+                                        <span>Convert</span>
+                                      </button>
+                                    ) : (
+                                      <span className="px-3 py-1.5 bg-slate-900 border border-slate-800 text-slate-500 rounded-lg text-xs font-bold flex items-center gap-1">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                        <span>Converted</span>
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={async () => {
+                                        if (window.confirm('Permanently delete this enquiry?')) {
+                                          try {
+                                            await deleteEnquiry(enq.id);
+                                            showToast('success', 'Enquiry Deleted', 'The enquiry was permanently deleted.');
+                                          } catch (err) {
+                                            showToast('error', 'Delete Failed', 'Failed to delete enquiry.');
+                                          }
                                         }
-                                      }
-                                    }}
-                                    className="px-3 py-1.5 bg-rose-955 text-rose-455 hover:bg-rose-900 border border-rose-900 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer animate-pulse"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Delete Enquiry</span>
-                                  </button>
+                                      }}
+                                      className="px-3 py-1.5 bg-rose-955 text-rose-455 hover:bg-rose-900 border border-rose-900 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Delete</span>
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -2415,22 +2546,46 @@ export default function AdminPanel() {
 
                                 {/* Actions Column */}
                                 <td className="px-4 py-3.5 text-center">
-                                  <button
-                                    onClick={async () => {
-                                      if (window.confirm('Are you sure you want to permanently delete this enquiry? This action cannot be undone.')) {
-                                        try {
-                                          await deleteEnquiry(enq.id);
-                                          showToast('success', 'Enquiry Deleted', 'The enquiry was permanently deleted.');
-                                        } catch (err) {
-                                          showToast('error', 'Delete Failed', 'Failed to delete enquiry.');
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {!['Onboarded', 'Completed', 'Confirmed'].includes(enq.bookingStatus || enq.status) ? (
+                                      <button
+                                        onClick={() => {
+                                          setConvertingEnquiry(enq);
+                                          setConversionForm({
+                                            bookingAmount: String(enq.finalNegotiatedAmount ?? enq.estimatedBookingAmount ?? enq.bookingAmount ?? 0),
+                                            travelDate: enq.travelDate || '',
+                                            paymentStatus: 'Unpaid',
+                                            remarks: '',
+                                            bookingStatus: 'Confirmed',
+                                          });
+                                        }}
+                                        className="p-1.5 text-emerald-500 hover:bg-emerald-955/40 rounded-lg transition-colors cursor-pointer"
+                                        title="Convert to Booking"
+                                      >
+                                        <CheckSquare className="w-4 h-4" />
+                                      </button>
+                                    ) : (
+                                      <span className="p-1.5 text-slate-500" title="Converted to Booking">
+                                        <CheckCircle className="w-4 h-4" />
+                                      </span>
+                                    )}
+                                    <button
+                                      onClick={async () => {
+                                        if (window.confirm('Are you sure you want to permanently delete this enquiry? This action cannot be undone.')) {
+                                          try {
+                                            await deleteEnquiry(enq.id);
+                                            showToast('success', 'Enquiry Deleted', 'The enquiry was permanently deleted.');
+                                          } catch (err) {
+                                            showToast('error', 'Delete Failed', 'Failed to delete enquiry.');
+                                          }
                                         }
-                                      }
-                                    }}
-                                    className="p-1.5 text-rose-500 hover:bg-rose-955/40 rounded-lg transition-colors"
-                                    title="Delete enquiry"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                      }}
+                                      className="p-1.5 text-rose-500 hover:bg-rose-955/40 rounded-lg transition-colors cursor-pointer"
+                                      title="Delete enquiry"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -2910,117 +3065,18 @@ export default function AdminPanel() {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-slate-355 block">Content Body (WordPress-style Rich Text Editor) *</label>
+                          <label className="text-xs font-bold text-slate-355 block">Content Body (Raw HTML Format inside &lt;article&gt;) *</label>
                           
-                          {/* Formatting Toolbar */}
-                          <div className="flex flex-wrap gap-1 p-1.5 border border-slate-800 rounded-lg bg-slate-950 items-center">
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('bold')}
-                              className="px-2.5 py-1 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-200 cursor-pointer shadow-xs"
-                              title="Bold"
-                            >
-                              <b>B</b>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('italic')}
-                              className="px-2.5 py-1 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-200 cursor-pointer shadow-xs"
-                              title="Italic"
-                            >
-                              <i>I</i>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('underline')}
-                              className="px-2.5 py-1 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-200 cursor-pointer shadow-xs"
-                              title="Underline"
-                            >
-                              <u>U</u>
-                            </button>
-
-                            <div className="w-[1px] h-5 bg-slate-800 mx-1" />
-
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('formatBlock', '<h2>')}
-                              className="px-2.5 py-1 text-[11px] font-black bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-indigo-400 cursor-pointer shadow-xs"
-                              title="Heading 2"
-                            >
-                              H2
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('formatBlock', '<h3>')}
-                              className="px-2.5 py-1 text-[11px] font-black bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-indigo-400 cursor-pointer shadow-xs"
-                              title="Heading 3"
-                            >
-                              H3
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('formatBlock', '<p>')}
-                              className="px-2.5 py-1 text-[11px] font-bold bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-200 cursor-pointer shadow-xs"
-                              title="Paragraph"
-                            >
-                              P
-                            </button>
-
-                            <div className="w-[1px] h-5 bg-slate-800 mx-1" />
-
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('insertUnorderedList')}
-                              className="px-2.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-200 cursor-pointer shadow-xs"
-                              title="Bullet List"
-                            >
-                              • List
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('insertOrderedList')}
-                              className="px-2.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-200 cursor-pointer shadow-xs"
-                              title="Numbered List"
-                            >
-                              1. List
-                            </button>
-
-                            <div className="w-[1px] h-5 bg-slate-800 mx-1" />
-
-                            <button
-                              type="button"
-                              onClick={addEditorLink}
-                              className="p-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-350 cursor-pointer shadow-xs flex items-center justify-center"
-                              title="Insert Link"
-                            >
-                              <Link2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={addEditorImage}
-                              className="p-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-slate-350 cursor-pointer shadow-xs flex items-center justify-center"
-                              title="Insert Image inline"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => executeEditorCommand('removeFormat')}
-                              className="px-2 py-1 text-[10px] bg-slate-950 hover:bg-slate-800 border border-slate-850 rounded text-slate-400 cursor-pointer"
-                              title="Clear styles"
-                            >
-                              Clear
-                            </button>
-                          </div>
-
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* Rich Editor Editable Field */}
+                            {/* Raw HTML Textarea Field */}
                             <div className="relative">
-                              <div
-                                ref={blogEditorRef}
-                                contentEditable
-                                onInput={handleEditorInput}
-                                className="w-full min-h-[340px] max-h-[500px] border border-slate-800 bg-slate-950 p-3.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 overflow-y-auto leading-relaxed space-y-2 block"
+                              <textarea
+                                required
+                                value={bContent}
+                                onChange={(e) => setBContent(e.target.value)}
+                                placeholder="<article>&#10;  <h2>Heading</h2>&#10;  <p>Write your article HTML content here...</p>&#10;</article>"
+                                className="w-full min-h-[340px] max-h-[500px] border border-slate-800 bg-slate-950 p-3.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-mono leading-relaxed resize-none"
+                                rows={18}
                               />
                             </div>
 
@@ -3873,6 +3929,7 @@ export default function AdminPanel() {
               {panelTab === 'emails' && (
                 <EmailsPanel
                   enquiries={enquiries}
+                  bookings={bookings}
                   customTemplates={customTemplates}
                   scheduledEmails={scheduledEmails}
                   saveCustomTemplate={saveCustomTemplate}
@@ -3883,6 +3940,99 @@ export default function AdminPanel() {
                   showToast={showToast}
                   packages={packages}
                 />
+              )}
+
+              {/* BOOKING CONVERSION MODAL */}
+              {convertingEnquiry && (
+                <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+                  <div className="relative bg-slate-900 border-x border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-fade-in text-white font-sans">
+                    <div className="bg-indigo-650 rounded-t-2xl px-6 py-4 flex items-center justify-between border-b border-indigo-700">
+                      <div>
+                        <h4 className="font-black text-white text-base">Convert Lead to Booking</h4>
+                        <p className="text-indigo-200 text-[11px] mt-0.5">Creating booking record for {convertingEnquiry.name}</p>
+                      </div>
+                      <button onClick={() => setConvertingEnquiry(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-700/50 hover:bg-indigo-700 text-white transition-colors cursor-pointer">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleConversionSubmit} className="p-6 space-y-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-350 block mb-1">Final Booking Amount (INR) *</label>
+                        <input
+                          type="number"
+                          required
+                          value={conversionForm.bookingAmount}
+                          onChange={(e) => setConversionForm({ ...conversionForm, bookingAmount: e.target.value })}
+                          className="w-full border border-slate-800 bg-slate-955 p-2.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 font-bold text-right"
+                          placeholder="e.g. 25000"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-350 block mb-1">Travel Date *</label>
+                        <input
+                          type="date"
+                          required
+                          value={conversionForm.travelDate}
+                          onChange={(e) => setConversionForm({ ...conversionForm, travelDate: e.target.value })}
+                          className="w-full border border-slate-800 bg-slate-955 p-2.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-355 block mb-1">Initial Payment Status</label>
+                        <select
+                          value={conversionForm.paymentStatus}
+                          onChange={(e) => setConversionForm({ ...conversionForm, paymentStatus: e.target.value as any })}
+                          className="w-full border border-slate-800 bg-slate-955 p-2.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="Unpaid">Unpaid (Payment Pending)</option>
+                          <option value="Paid">Paid (Fully Collected)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-355 block mb-1">Booking Status</label>
+                        <select
+                          value={conversionForm.bookingStatus}
+                          onChange={(e) => setConversionForm({ ...conversionForm, bookingStatus: e.target.value as any })}
+                          className="w-full border border-slate-800 bg-slate-955 p-2.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="Confirmed">Confirmed</option>
+                          <option value="Onboarded">Onboarded</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-355 block mb-1">Remarks / Internal Notes</label>
+                        <textarea
+                          rows={2}
+                          value={conversionForm.remarks}
+                          onChange={(e) => setConversionForm({ ...conversionForm, remarks: e.target.value })}
+                          placeholder="Special requests, flight details, or payment notes..."
+                          className="w-full border border-slate-800 bg-slate-955 p-2.5 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-slate-600"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-3 border-t border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => setConvertingEnquiry(null)}
+                          className="flex-1 px-4 py-2.5 bg-slate-955 border border-slate-800 text-slate-400 hover:text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 px-4 py-2.5 bg-indigo-650 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer"
+                        >
+                          Confirm & Convert
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
               )}
 
             </div>
