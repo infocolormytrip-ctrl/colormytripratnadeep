@@ -101,19 +101,13 @@ export default function Footer() {
             <h4 className="text-white font-bold text-xs uppercase tracking-wider font-mono">Legal & Info</h4>
             <ul className="space-y-2 text-xs sm:text-[13px]">
               <li>
-                <Link to="/sitemap" className="hover:text-white transition-colors text-slate-400 flex items-center gap-1.5">
-                  <Map className="w-3 h-3" />
-                  <span>Site Map</span>
-                </Link>
+                <Link to="/privacy-policy" className="text-slate-400 hover:text-white transition-colors text-[12px]">Privacy Policy</Link>
               </li>
               <li>
-                <span className="text-slate-600 text-[11px]">Privacy Policy</span>
+                <Link to="/terms-and-conditions" className="text-slate-400 hover:text-white transition-colors text-[12px]">Terms & Conditions</Link>
               </li>
               <li>
-                <span className="text-slate-600 text-[11px]">Terms & Conditions</span>
-              </li>
-              <li>
-                <span className="text-slate-600 text-[11px]">Cancellation Policy</span>
+                <Link to="/cancellation-policy" className="text-slate-400 hover:text-white transition-colors text-[12px]">Cancellation Policy</Link>
               </li>
             </ul>
           </div>

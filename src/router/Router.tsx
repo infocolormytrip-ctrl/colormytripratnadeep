@@ -15,6 +15,9 @@ import BlogDetailPage from '../pages/BlogDetailPage';
 import SitemapPage from '../pages/SitemapPage';
 import PackageRoute from '../pages/PackageRoute';
 import NotFoundPage from '../pages/NotFoundPage';
+import PrivacyPolicyPage from '../pages/PrivacyPolicyPage';
+import TermsPage from '../pages/TermsPage';
+import CancellationPolicyPage from '../pages/CancellationPolicyPage';
 
 // Admin / Affiliate (SPAs — outside the PublicLayout)
 import AdminPage from '../pages/AdminPage';
@@ -75,6 +78,9 @@ function RouterInner() {
           <Route path="/blogs/:slug" element={<BlogDetailPage />} />
           <Route path="/sitemap" element={<SitemapPage />} />
           <Route path="/package/:packageId" element={<PackageRoute />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms-and-conditions" element={<TermsPage />} />
+          <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
         </Route>
 
         {/* Admin / Affiliate (no PublicLayout) */}
@@ -102,6 +108,9 @@ function RouterInner() {
         <Route path="/blogs/:slug" element={<BlogDetailPage />} />
         <Route path="/sitemap" element={<SitemapPage />} />
         <Route path="/package/:packageId" element={<PackageRoute />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms-and-conditions" element={<TermsPage />} />
+        <Route path="/cancellation-policy" element={<CancellationPolicyPage />} />
       </Route>
 
       {/* Admin SPA — outside PublicLayout */}

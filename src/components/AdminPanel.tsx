@@ -1211,10 +1211,12 @@ export default function AdminPanel() {
     contactSettings,
     siteBrandSettings,
     netaTagsSettings,
+    legalSettings,
     updateFooterSettings,
     updateContactSettings,
     updateSiteBrandSettings,
     updateNetaTagsSettings,
+    updateLegalSettings,
     notifications,
     markNotificationAsRead,
     markAllNotificationsAsRead
@@ -1530,6 +1532,10 @@ export default function AdminPanel() {
 
   const [netaTagsText, setNetaTagsText] = useState('');
 
+  const [legalPrivacyPolicy, setLegalPrivacyPolicy] = useState('');
+  const [legalTerms, setLegalTerms] = useState('');
+  const [legalCancellationPolicy, setLegalCancellationPolicy] = useState('');
+
   const resetCmsFormFromState = () => {
     setSiteLogoUrl((siteBrandSettings as any)?.site_logo_url || '');
     setFooterLogoUrl((siteBrandSettings as any)?.footer_logo_url || '');
@@ -1552,6 +1558,10 @@ export default function AdminPanel() {
     const tagsArr: string[] = (netaTagsSettings as any)?.neta_tags || [];
     if (Array.isArray(tagsArr) && tagsArr.length) setNetaTagsText(tagsArr.join(', '));
     else setNetaTagsText((netaTagsSettings as any)?.neta_tags_text || '');
+
+    setLegalPrivacyPolicy((legalSettings as any)?.privacyPolicy || '');
+    setLegalTerms((legalSettings as any)?.termsAndConditions || '');
+    setLegalCancellationPolicy((legalSettings as any)?.cancellationPolicy || '');
   };
 
   const openOfferEditor = (offer: OfferMarqueeItem) => {
@@ -1773,7 +1783,7 @@ export default function AdminPanel() {
       resetCmsFormFromState();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panelTab, footerSettings, contactSettings, siteBrandSettings, netaTagsSettings]);
+  }, [panelTab, footerSettings, contactSettings, siteBrandSettings, netaTagsSettings, legalSettings]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -3736,6 +3746,47 @@ export default function AdminPanel() {
                           className="px-5 py-2 bg-indigo-650 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 cursor-pointer"
                         >
                           Save Brand & Neta Tags
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-xl text-white">
+                    <div className="p-5 border-b border-slate-800 bg-slate-900/50">
+                      <h4 className="text-sm font-black text-white">Legal Pages</h4>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className="text-xs font-bold text-slate-355 block mb-1">Privacy Policy</label>
+                        <textarea value={legalPrivacyPolicy} onChange={(e) => setLegalPrivacyPolicy(e.target.value)} rows={4} className="w-full border border-slate-800 bg-slate-950 p-3 rounded-lg text-xs text-white placeholder-slate-500" placeholder="Privacy policy text..." />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-355 block mb-1">Terms & Conditions</label>
+                        <textarea value={legalTerms} onChange={(e) => setLegalTerms(e.target.value)} rows={4} className="w-full border border-slate-800 bg-slate-950 p-3 rounded-lg text-xs text-white placeholder-slate-500" placeholder="Terms and conditions text..." />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-355 block mb-1">Cancellation Policy</label>
+                        <textarea value={legalCancellationPolicy} onChange={(e) => setLegalCancellationPolicy(e.target.value)} rows={4} className="w-full border border-slate-800 bg-slate-950 p-3 rounded-lg text-xs text-white placeholder-slate-500" placeholder="Cancellation policy text..." />
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateLegalSettings({
+                                privacyPolicy: legalPrivacyPolicy,
+                                termsAndConditions: legalTerms,
+                                cancellationPolicy: legalCancellationPolicy
+                              } as any);
+                              showToast('success', 'Legal Pages Saved', 'Legal pages content saved successfully.');
+                            } catch (e) {
+                              console.error(e);
+                              showToast('error', 'Save Failed', 'Failed to save legal pages.');
+                            }
+                          }}
+                          className="px-5 py-2 bg-indigo-650 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 cursor-pointer"
+                        >
+                          Save Legal Pages
                         </button>
                       </div>
                     </div>

@@ -35,7 +35,9 @@ import {
   CustomTemplate,
   ScheduledEmail,
   VendorPayment,
-  MasterVendor
+  MasterVendor,
+  EmailAttachment,
+  LegalSettings
 } from '../types';
 import { Affiliate, AffiliateStatus, ActivityLogEntry, PromoCode, CommissionRecord, NotificationItem } from '../types/affiliate';
 import {
@@ -157,12 +159,14 @@ interface DataContextType {
   contactSettings: ContactSettings;
   siteBrandSettings: SiteBrandSettings;
   netaTagsSettings: NetaTagsSettings;
+  legalSettings: LegalSettings;
 
   updateFooterSettings: (data: SiteFooterSettings) => Promise<void>;
   updateAboutSettings: (data: AboutSettings) => Promise<void>;
   updateContactSettings: (data: ContactSettings) => Promise<void>;
   updateSiteBrandSettings: (data: SiteBrandSettings) => Promise<void>;
   updateNetaTagsSettings: (data: NetaTagsSettings) => Promise<void>;
+  updateLegalSettings: (data: LegalSettings) => Promise<void>;
 
 
   addEnquiry: (enquiry: Omit<Enquiry, 'id' | 'createdAt' | 'status'> & { estimatedBookingAmount?: number; status?: string; bookingStatus?: string }) => Promise<Enquiry>;
@@ -333,6 +337,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [siteBrandSettings, setSiteBrandSettings] = useState<SiteBrandSettings>({});
   const [netaTagsSettings, setNetaTagsSettings] = useState<NetaTagsSettings>({});
+  const [legalSettings, setLegalSettings] = useState<LegalSettings>({});
 
 
   const isFirebaseActive = !isPlaceholder;
@@ -2841,6 +2846,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       setContactSettings(contact);
 
+      const legal = loadJsonLocal<LegalSettings>('cmt_site_legal', {
+        privacyPolicy: '',
+        termsAndConditions: '',
+        cancellationPolicy: ''
+      });
+      setLegalSettings(legal);
     };
 
     loadLocalDefaults();
@@ -2856,6 +2867,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const refFooter = doc(db, 'siteSettings', 'footer');
     const refAbout = doc(db, 'siteSettings', 'about');
     const refContact = doc(db, 'siteSettings', 'contact');
+    const refLegal = doc(db, 'siteSettings', 'legal');
     const refBrand = doc(db, 'siteBrandSettings', 'brand');
     const refNeta = doc(db, 'netaTagsSettings', 'tags');
 
@@ -2900,6 +2912,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     unsubscribers.push(
+      onSnapshot(refLegal, (snap: any) => {
+        const data = (snap?.data?.() || {}) as Partial<LegalSettings>;
+        setLegalSettings({
+          privacyPolicy: data.privacyPolicy || '',
+          termsAndConditions: data.termsAndConditions || '',
+          cancellationPolicy: data.cancellationPolicy || ''
+        });
+      })
+    );
+
+    unsubscribers.push(
       onSnapshot(refBrand, (snap: any) => {
         const data = (snap?.data?.() || {}) as Partial<SiteBrandSettings>;
         setSiteBrandSettings({
@@ -2929,7 +2952,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
 
-  const upsertSiteSettingsDoc = async (docId: 'footer' | 'about' | 'contact', data: any) => {
+  const upsertSiteSettingsDoc = async (docId: 'footer' | 'about' | 'contact' | 'legal', data: any) => {
     if (!(isFirebaseActive && db)) {
       if (docId === 'footer') {
         localStorage.setItem('cmt_site_footer', JSON.stringify(data));
@@ -2937,9 +2960,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (docId === 'about') {
         localStorage.setItem('cmt_site_about', JSON.stringify(data));
         setAboutSettings(data as AboutSettings);
-      } else {
+      } else if (docId === 'contact') {
         localStorage.setItem('cmt_site_contact', JSON.stringify(data));
         setContactSettings(data as ContactSettings);
+      } else {
+        localStorage.setItem('cmt_site_legal', JSON.stringify(data));
+        setLegalSettings(data as LegalSettings);
       }
       return;
     }
@@ -2980,6 +3006,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateContactSettings = async (data: ContactSettings) => {
     await upsertSiteSettingsDoc('contact', data);
+  };
+
+  const updateLegalSettings = async (data: LegalSettings) => {
+    await upsertSiteSettingsDoc('legal', data);
   };
 
   const updateSiteBrandSettings = async (data: SiteBrandSettings) => {
@@ -3324,11 +3354,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         contactSettings,
         siteBrandSettings,
         netaTagsSettings,
+        legalSettings,
         updateFooterSettings,
         updateAboutSettings,
         updateContactSettings,
         updateSiteBrandSettings,
         updateNetaTagsSettings,
+        updateLegalSettings,
 
 
         addEnquiry,

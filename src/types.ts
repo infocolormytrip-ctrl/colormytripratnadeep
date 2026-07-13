@@ -11,7 +11,14 @@ export interface TravelPackage {
   inclusions: string[];
   exclusions: string[];
   featured: boolean;
+  neta_tags_text?: string; // fallback if tags are not used
   createdAt?: string; // ISO timestamp — used for "newest first" sorting
+}
+
+export interface LegalSettings {
+  privacyPolicy?: string;
+  termsAndConditions?: string;
+  cancellationPolicy?: string;
 }
 
 export interface Enquiry {
