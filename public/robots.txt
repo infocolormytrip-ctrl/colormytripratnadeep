@@ -1,0 +1,20 @@
+# robots.txt for ColorMyTrip
+# https://www.colormytrip.com
+
+User-agent: *
+Allow: /
+
+# Block admin & private routes
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin/affiliates
+Disallow: /affiliate
+Disallow: /affiliate/
+
+# Allow all crawlers to access assets
+Allow: /assets/
+Allow: /*.js$
+Allow: /*.css$
+
+# Sitemap location
+Sitemap: https://www.colormytrip.com/sitemap.xml
