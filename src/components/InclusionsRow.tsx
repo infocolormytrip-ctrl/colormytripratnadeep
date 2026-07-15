@@ -79,11 +79,11 @@ export default function InclusionsRow({ inclusions }: InclusionsRowProps) {
         >
           {svc.icon}
           <span className="text-[9px] font-medium hidden sm:inline text-indigo-700/80">{svc.label.split(' ')[0]}</span>
-          
+
           {/* Tooltip */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-30 bg-slate-900 text-white text-[9px] px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap">
+          {/* <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-30 bg-slate-900 text-white text-[9px] px-2 py-1 rounded shadow-md pointer-events-none whitespace-nowrap">
             {svc.label}
-          </div>
+          </div> */}
         </div>
       ))}
     </div>

@@ -25,7 +25,10 @@ export default function Footer() {
               {footerSettings?.footer_description_text ||
                 'Your uncommerialized partner for pristine family vacations, Himalayan mountaineering summits, and exotic budget-friendly world explorations.'}
             </p>
-            <div className="flex gap-3 text-slate-500 pt-1">
+            <div className="flex gap-3 text-slate-500 pt-1 items-center">
+              <p className="text-xs sm:text-[13px] leading-relaxed text-slate-400">
+                <img className='h-5 w-auto mb-2 mr-5' src="https://www.inditab.com/msme/assets/image/meraprofit/msme-logo.png" alt="msme logo" /> <a target='_blank' className='hover:text-white transition-colors text-slate-400 hover:translate-x-1 inline-block transition-transform duration-200' title="View the Certificate" href="https://drive.google.com/file/d/11O2pUCJHINBOCBGJZ0SfrKnqEYVYoE6A/view?usp=sharing">UDYAM-WB-14-0262216</a>
+              </p>
               <button
                 onClick={() => footerSettings?.social_links?.facebook_url && window.open(footerSettings.social_links.facebook_url, '_blank')}
                 aria-label="Facebook"

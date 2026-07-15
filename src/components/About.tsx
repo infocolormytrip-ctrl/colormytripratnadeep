@@ -5,6 +5,7 @@ import { ShieldCheck, HeartHandshake, Compass, Star, Quote, Linkedin, Instagram,
 
 import RatnadepImg from '../assets/Images/ratnadeep.png';
 import PoulamiImg from '../assets/Images/poulami.png';
+import About_img from '../assets/Images/about_img.png'
 
 
 export default function About() {
@@ -43,7 +44,7 @@ export default function About() {
       name: 'Poulami Sengupta',
       role: 'Founder & Owner',
       image: PoulamiImg,
-      bio: 'Poulami Sengupta is the visionary behind ColorMyTrip, passionate about creating memorable travel experiences with personalized planning, comfort, and affordability. Her dedication towards customer satisfaction and curated travel experiences drives the brand forward.',
+      bio: 'Poulami Sengupta is the visionary behind ColorMyTrip, dedicated to crafting memorable travel experiences through personalized planning, comfort, and affordability. A professional actor and accomplished theatre performer, she brings creativity, passion, and a keen eye for storytelling to every journey. Her commitment to exceptional customer service and thoughtfully curated travel experiences continues to inspire and drive the brand forward.',
       socials: [
         { icon: Instagram, href: 'https://www.instagram.com/poulami.sengupta.948/', label: 'Instagram' },
         { icon: Facebook, href: 'https://www.facebook.com/poulami.sengupta.948/', label: 'Facebook' }
@@ -53,7 +54,7 @@ export default function About() {
       name: 'Ratnadeep Mukherjee',
       role: 'Co-founder & Travel Expert',
       image: RatnadepImg,
-      bio: 'Ratnadeep Mukherjee specializes in travel planning, destination research, and customer experience strategy. His expertise in organizing seamless and budget-friendly trips helps travelers explore destinations with confidence and comfort.',
+      bio: 'Ratnadeep Mukherjee is a creative designer and travel expert, blending design excellence with extensive travel knowledge. His expertise in destination planning, itinerary curation, and customer experience helps travelers explore the world with confidence, comfort, and authentic local experiences.',
       socials: [
         { icon: Linkedin, href: 'https://www.linkedin.com/in/ratnadeep-mukherjee-301404a8/', label: 'LinkedIn' },
         { icon: Instagram, href: 'https://www.instagram.com/ratnadeep_mukherjee/', label: 'Instagram' },
@@ -65,20 +66,20 @@ export default function About() {
   return (
     <div className="py-16 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Intro Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-20">
-          
+
           {/* Text block */}
           <div className="lg:col-span-6 space-y-6">
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-full text-xs font-bold tracking-wider uppercase">
               <span>Who We Are</span>
             </div>
-            
+
             <h2 className="text-3xl sm:text-4xl font-sans font-black text-slate-900 tracking-tight leading-tight">
               A Travel Company That Believes Every <span className="text-indigo-600 underline decoration-indigo-200 underline-offset-8">Journey Should Tell a Story</span>.
             </h2>
-            
+
             <p className="text-slate-600 text-[15px] sm:text-base leading-relaxed">
               At ColorMyTrip, we believe travel is more than reaching a destination—it's about creating unforgettable experiences, meaningful connections, and lifelong memories.
             </p>
@@ -101,7 +102,7 @@ export default function About() {
           <div className="lg:col-span-6 relative">
             <div className="relative w-full aspect-4/3 rounded-3xl overflow-hidden shadow-lg border border-slate-150">
               <img
-                src="https://images.pexels.com/photos/2398220/pexels-photo-2398220.jpeg?auto=compress&cs=tinysrgb&w=600"
+                src={About_img}
                 alt="ColorMyTrip travel guides team"
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -110,18 +111,18 @@ export default function About() {
             </div>
 
             {/* Overlapping small visual card */}
-            <div className="absolute -bottom-6 -left-6 bg-white p-5 rounded-2xl border border-slate-150 shadow-xl max-w-xs hidden sm:block">
+            <div className="absolute -bottom-20 -left-6 bg-white p-5 rounded-2xl border border-slate-150 shadow-xl max-w-xs hidden sm:block">
               <p className="text-xs font-bold text-slate-800 leading-normal mb-2">
-                "We provide uncommercialized, highly customized experiences prioritizing organic homestays over crowded tourist hotels."
+                "Experience thoughtfully curated journeys with handpicked local homestays, where authenticity, comfort, and meaningful connections replace crowded tourist destinations."
               </p>
-              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">— Director Team, ColorMyTrip</p>
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">— Team ColorMyTrip</p>
             </div>
           </div>
 
         </div>
 
         {/* Core Pillars */}
-        <div className="bg-slate-50/50 rounded-3xl p-8 md:p-12 border border-slate-150 mb-20">
+        <div className="bg-black/10 rounded-3xl p-8 md:p-12 mb-20">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <h3 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight">
               Our Core Travel Philosophy
@@ -151,7 +152,7 @@ export default function About() {
               <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
               <span>Real Customer Feedback</span>
             </div>
-            
+
             <h3 className="text-2xl sm:text-3xl font-sans font-black text-slate-900 tracking-tight">
               What other soulful travelers say
             </h3>
@@ -164,7 +165,7 @@ export default function About() {
             {reviews.map((rev) => (
               <div key={rev.id} className="bg-slate-50/50 p-6 rounded-2xl border border-slate-150 relative flex flex-col justify-between h-full">
                 <Quote className="w-10 h-10 text-indigo-100/70 absolute top-4 right-4" />
-                
+
                 <div className="space-y-4 mb-6">
                   {/* Stars */}
                   <div className="flex gap-0.5">
@@ -172,7 +173,7 @@ export default function About() {
                       <Star key={i} className="w-4 h-4 text-amber-500 fill-amber-500" />
                     ))}
                   </div>
-                  
+
                   <p className="text-slate-600 text-xs sm:text-sm leading-relaxed italic relative z-10">
                     "{rev.comment}"
                   </p>

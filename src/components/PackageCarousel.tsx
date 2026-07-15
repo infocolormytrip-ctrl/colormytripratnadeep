@@ -136,11 +136,10 @@ export default function PackageCarousel({
                 else window.location.href = `/package/${pkg.id}`;
               }
             }}
-            className={`flex-shrink-0 group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-300 cursor-pointer active:scale-[0.99] transition-all duration-300 flex flex-col ${
-              isBestseller
-                ? 'w-[85vw] sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)]'
-                : 'w-[80vw] sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)]'
-            }`}
+            className={`flex-shrink-0 group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-300 cursor-pointer active:scale-[0.99] transition-all duration-300 flex flex-col ${isBestseller
+              ? 'w-[85vw] sm:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)]'
+              : 'w-[80vw] sm:w-[calc(50%-8px)] lg:w-[calc(25%-12px)]'
+              }`}
           >
             {/* Image */}
             <div className={`relative overflow-hidden bg-slate-100 ${isBestseller ? 'aspect-[16/10]' : 'aspect-[16/11]'}`}>
@@ -225,11 +224,10 @@ export default function PackageCarousel({
               key={i}
               onClick={() => { scrollToIndex(i); resetAutoSlide(); }}
               aria-label={`Go to slide ${i + 1}`}
-              className={`rounded-full transition-all duration-300 cursor-pointer ${
-                i === activeIndex
-                  ? 'w-6 h-2 bg-indigo-600'
-                  : 'w-2 h-2 bg-slate-300 hover:bg-indigo-300'
-              }`}
+              className={`rounded-full transition-all duration-300 cursor-pointer ${i === activeIndex
+                ? 'w-6 h-2 bg-indigo-600'
+                : 'w-2 h-2 bg-slate-300 hover:bg-indigo-300'
+                }`}
             />
           ))}
         </div>
