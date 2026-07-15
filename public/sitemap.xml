@@ -6,63 +6,63 @@
 
   <!-- Static Pages -->
   <url>
-    <loc>https://www.colormytrip.com/</loc>
+    <loc>https://www.colormytrip.in/</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/about</loc>
+    <loc>https://www.colormytrip.in/about</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/packages</loc>
+    <loc>https://www.colormytrip.in/packages</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/packages?category=domestic</loc>
+    <loc>https://www.colormytrip.in/packages?category=domestic</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/packages?category=international</loc>
+    <loc>https://www.colormytrip.in/packages?category=international</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/packages?category=trekking</loc>
+    <loc>https://www.colormytrip.in/packages?category=trekking</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/blog</loc>
+    <loc>https://www.colormytrip.in/blog</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/contact</loc>
+    <loc>https://www.colormytrip.in/contact</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
   <url>
-    <loc>https://www.colormytrip.com/sitemap</loc>
+    <loc>https://www.colormytrip.in/sitemap</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
@@ -73,8 +73,8 @@
     For a fully dynamic sitemap, consider generating this file at build time using a script
     that reads packages and blogs from Firestore and outputs their URLs.
     
-    Example package URL format: https://www.colormytrip.com/package/{packageId}
-    Example blog URL format: https://www.colormytrip.com/blogs/{url-encoded-title}
+    Example package URL format: https://www.colormytrip.in/package/{packageId}
+    Example blog URL format: https://www.colormytrip.in/blogs/{url-encoded-title}
     
     Update this file whenever new packages or blogs are added.
   -->

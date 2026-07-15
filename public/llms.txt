@@ -1,0 +1,12 @@
+# ColorMyTrip
+
+> Customized India and International Tour Packages, offering tailormade itineraries for Kashmir, Meghalaya, Sikkim, Kerala, Bali, Bhutan, and more.
+
+## Core Navigation
+
+- [Home](https://www.colormytrip.in/) - Homepage of ColorMyTrip, providing details about tailored travel experiences, reviews, and featured packages.
+- [Tour Packages](https://www.colormytrip.in/packages) - Browse custom domestic, international, honeymoon, adventure, family, group, and trekking packages.
+- [About Us](https://www.colormytrip.in/about) - Learn about our mission, travel curators, and why to choose ColorMyTrip.
+- [Contact Us](https://www.colormytrip.in/contact) - Contact details, address, phone number, and online enquiry form.
+- [Travel Blog](https://www.colormytrip.in/blog) - Travel guides, expert tips, itineraries, and stories from our expert travel planners.
+- [Sitemap](https://www.colormytrip.in/sitemap) - Direct links to all pages on our website.

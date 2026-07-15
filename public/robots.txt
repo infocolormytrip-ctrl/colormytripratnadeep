@@ -1,5 +1,5 @@
 # robots.txt for ColorMyTrip
-# https://www.colormytrip.com
+# https://www.colormytrip.in
 
 User-agent: *
 Allow: /
@@ -17,4 +17,4 @@ Allow: /*.js$
 Allow: /*.css$
 
 # Sitemap location
-Sitemap: https://www.colormytrip.com/sitemap.xml
+Sitemap: https://www.colormytrip.in/sitemap.xml
