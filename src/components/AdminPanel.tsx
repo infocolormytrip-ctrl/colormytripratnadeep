@@ -1334,6 +1334,8 @@ export default function AdminPanel() {
 
   // Package submission form state
   const [pTitle, setPTitle] = useState('');
+  const [pMetaTitle, setPMetaTitle] = useState('');
+  const [pMetaDesc, setPMetaDesc] = useState('');
   const [pCat, setPCat] = useState<'domestic' | 'international' | 'trekking'>('domestic');
   const [pPrice, setPPrice] = useState('');
   const [pDuration, setPDuration] = useState('');
@@ -1371,6 +1373,8 @@ export default function AdminPanel() {
 
   const resetPackageForm = () => {
     setPTitle('');
+    setPMetaTitle('');
+    setPMetaDesc('');
     setPCat('domestic');
     setPPrice('');
     setPDuration('');
@@ -1398,6 +1402,8 @@ export default function AdminPanel() {
   const openPackageEditor = (pkg: TravelPackage) => {
     setPkgEditingId(pkg.id);
     setPTitle(pkg.title);
+    setPMetaTitle(pkg.meta_title || '');
+    setPMetaDesc(pkg.meta_description || '');
     setPCat(pkg.category);
     setPPrice(String(pkg.price));
     setPDuration(pkg.duration);
@@ -1588,6 +1594,8 @@ export default function AdminPanel() {
 
       const payload = {
         title: pTitle,
+        meta_title: pMetaTitle,
+        meta_description: pMetaDesc,
         category: pCat,
         price: Number(pPrice),
         duration: pDuration,
@@ -2685,6 +2693,29 @@ export default function AdminPanel() {
                               <option value="international">International Tour</option>
                               <option value="trekking">Trekking</option>
                             </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-slate-350 block mb-1">SEO Meta Title</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Best Sikkim Tour Package..."
+                              value={pMetaTitle}
+                              onChange={(e) => setPMetaTitle(e.target.value)}
+                              className="w-full border border-slate-800 bg-slate-950 p-2 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-slate-350 block mb-1">SEO Meta Description</label>
+                            <textarea
+                              placeholder="e.g. Book our 5 days Sikkim tour package..."
+                              value={pMetaDesc}
+                              rows={2}
+                              onChange={(e) => setPMetaDesc(e.target.value)}
+                              className="w-full border border-slate-800 bg-slate-950 p-2 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500 resize-none"
+                            />
                           </div>
                         </div>
 

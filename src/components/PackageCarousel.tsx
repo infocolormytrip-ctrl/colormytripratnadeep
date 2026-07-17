@@ -133,7 +133,7 @@ export default function PackageCarousel({
             onClick={() => {
               if (!isDragging) {
                 if (onSelectPackage) onSelectPackage(pkg);
-                else window.location.href = `/package/${pkg.id}`;
+                else window.location.href = `/package/${pkg.slug || pkg.id}`;
               }
             }}
             className={`flex-shrink-0 group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-300 cursor-pointer active:scale-[0.99] transition-all duration-300 flex flex-col ${isBestseller

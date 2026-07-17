@@ -27,6 +27,22 @@ export default function PackageDetails({ pkg, onBack }: PackageDetailsProps) {
   const { showToast, addEnquiry, validatePromoCode } = useData();
   const [activeTab, setActiveTab] = useState<'itinerary' | 'inclusions'>('itinerary');
 
+  useEffect(() => {
+    if (pkg) {
+      document.title = pkg.meta_title || `${pkg.title} | ColorMyTrip`;
+      
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', pkg.meta_description || pkg.description.substring(0, 160));
+      } else {
+        const meta = document.createElement('meta');
+        meta.name = "description";
+        meta.content = pkg.meta_description || pkg.description.substring(0, 160);
+        document.head.appendChild(meta);
+      }
+    }
+  }, [pkg]);
+
   const shareUrl = useMemo(() => {
     if (typeof window === 'undefined') return '';
     return window.location.href;

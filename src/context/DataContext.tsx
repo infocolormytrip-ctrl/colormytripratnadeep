@@ -2116,8 +2116,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createPackage = async (pkgData: Omit<TravelPackage, 'id'>): Promise<TravelPackage> => {
     const now = new Date().toISOString();
+    
+    // Auto-generate slug from title if not provided
+    const baseSlug = (pkgData.slug || pkgData.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
+    const finalSlug = baseSlug ? `${baseSlug}_${Math.random().toString(36).substring(2, 6)}` : '';
+    
     const newPkg: TravelPackage = {
       ...pkgData,
+      slug: finalSlug,
       id: Math.random().toString(36).substring(2, 9),
       createdAt: now, // Always stamp createdAt for newest-first sorting
     };
@@ -2126,6 +2132,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const docRef = await addDoc(collection(db, 'packages'), {
           title: newPkg.title,
+          slug: newPkg.slug || '',
+          meta_title: newPkg.meta_title || '',
+          meta_description: newPkg.meta_description || '',
           category: newPkg.category,
           price: Number(newPkg.price),
           duration: newPkg.duration,

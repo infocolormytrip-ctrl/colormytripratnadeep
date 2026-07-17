@@ -11,6 +11,9 @@ export interface TravelPackage {
   inclusions: string[];
   exclusions: string[];
   featured: boolean;
+  slug?: string;
+  meta_title?: string;
+  meta_description?: string;
   neta_tags_text?: string; // fallback if tags are not used
   createdAt?: string; // ISO timestamp — used for "newest first" sorting
 }

@@ -8,7 +8,7 @@ export default function PackageRoute() {
   const navigate = useNavigate();
   const { packages } = useData();
 
-  const pkg = packages.find((p) => p.id === packageId) || null;
+  const pkg = packages.find((p) => p.slug === packageId || p.id === packageId) || null;
 
   // Packages load async (Firebase/local). Avoid showing not-found flash.
   // While packages are empty, show nothing (or a skeleton) instead.
