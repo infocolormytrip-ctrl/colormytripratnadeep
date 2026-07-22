@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { TravelPackage } from '../types';
 import { ChevronLeft, ChevronRight, MapPin, Clock, Star } from 'lucide-react';
 import InclusionsRow from './InclusionsRow';
+import { getPackageSlug } from '../lib/slug';
 
 interface PackageCarouselProps {
   packages: TravelPackage[];
@@ -133,7 +134,7 @@ export default function PackageCarousel({
             onClick={() => {
               if (!isDragging) {
                 if (onSelectPackage) onSelectPackage(pkg);
-                else window.location.href = `/package/${pkg.slug || pkg.id}`;
+                else window.location.href = `/package/${getPackageSlug(pkg)}`;
               }
             }}
             className={`flex-shrink-0 group bg-white rounded-2xl border border-slate-200/60 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-300 cursor-pointer active:scale-[0.99] transition-all duration-300 flex flex-col ${isBestseller

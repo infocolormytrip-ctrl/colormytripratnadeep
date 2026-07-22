@@ -2,13 +2,14 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import PackageDetails from '../components/PackageDetails';
+import { getPackageSlug } from '../lib/slug';
 
 export default function PackageRoute() {
   const { packageId } = useParams();
   const navigate = useNavigate();
   const { packages } = useData();
 
-  const pkg = packages.find((p) => p.slug === packageId || p.id === packageId) || null;
+  const pkg = packages.find((p) => getPackageSlug(p) === packageId || p.id === packageId) || null;
 
   // Packages load async (Firebase/local). Avoid showing not-found flash.
   // While packages are empty, show nothing (or a skeleton) instead.

@@ -4,6 +4,7 @@ import { TravelPackage } from '../types';
 import { Compass, Clock, MapPin, Tag, ChevronRight, SlidersHorizontal, Search } from 'lucide-react';
 import InclusionsRow from './InclusionsRow';
 import { useNavigate } from 'react-router-dom';
+import { getPackageSlug } from '../lib/slug';
 
 
 interface PackagesProps {
@@ -21,7 +22,7 @@ export default function Packages({
   setSearchCategory,
   onSelectPackage,
 }: PackagesProps) {
-  const { packages } = useData();
+  const { packages, packagesLoading } = useData();
   const navigate = useNavigate();
 
   const [internalSearch, setInternalSearch] = useState(searchQuery);
@@ -227,7 +228,7 @@ export default function Packages({
 
                     {/* View Details / Enquire button */}
                     <button
-                      onClick={() => navigate(`/package/${pkg.slug || pkg.id}`)}
+                      onClick={() => navigate(`/package/${getPackageSlug(pkg)}`)}
                       className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-slate-950 hover:bg-slate-800 shadow-sm transition-all duration-200 flex items-center gap-0.5 cursor-pointer"
                     >
                       <span>Details</span>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Map, Package, BookOpen, Home, Info, Phone, ExternalLink } from 'lucide-react';
 import { titleToSlug } from './BlogListPage';
+import { getPackageSlug } from '../lib/slug';
 
 export default function SitemapPage() {
   const { packages, blogs } = useData();
@@ -94,7 +95,7 @@ export default function SitemapPage() {
                 {sortedPackages.map((pkg) => (
                   <Link
                     key={pkg.id}
-                    to={`/package/${pkg.slug || pkg.id}`}
+                    to={`/package/${getPackageSlug(pkg)}`}
                     className="group bg-white rounded-xl border border-slate-100 p-3 hover:border-emerald-200 hover:shadow-sm transition-all flex items-start gap-2.5"
                   >
                     <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-100 transition-colors">
@@ -104,7 +105,7 @@ export default function SitemapPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-slate-800 text-[12px] leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2">{pkg.title}</p>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">/package/{pkg.slug || pkg.id}</p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">/package/{getPackageSlug(pkg)}</p>
                     </div>
                   </Link>
                 ))}

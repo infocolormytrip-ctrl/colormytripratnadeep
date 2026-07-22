@@ -130,6 +130,7 @@ interface DataContextType {
 
   isFirebaseActive: boolean;
   loading: boolean;
+  packagesLoading: boolean;
   loginWithGoogle: () => Promise<void>;
   localAdminBypass: () => void;
   localAffiliateBypass: () => void;
@@ -309,6 +310,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [affiliateId, setAffiliateId] = useState<string | undefined>(undefined);
   const [affiliateProfile, setAffiliateProfile] = useState<Affiliate | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [packagesLoading, setPackagesLoading] = useState<boolean>(true);
 
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -539,6 +541,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.error('Firestore packages fetch error, falling back to local storage:', error);
           loadPackagesLocal();
+        } finally {
+          setPackagesLoading(false);
         }
 
         try {
@@ -641,6 +645,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         loadPackagesLocal();
+        setPackagesLoading(false);
         loadBlogsLocal();
         loadVideosLocal();
         loadReviewsLocal();
@@ -2119,7 +2124,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Auto-generate slug from title if not provided
     const baseSlug = (pkgData.slug || pkgData.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-    const finalSlug = baseSlug ? `${baseSlug}_${Math.random().toString(36).substring(2, 6)}` : '';
+    const finalSlug = baseSlug;
     
     const newPkg: TravelPackage = {
       ...pkgData,
@@ -3353,6 +3358,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         affiliateProfile,
         isFirebaseActive,
         loading,
+        packagesLoading,
         loginWithGoogle,
         localAdminBypass,
         localAffiliateBypass,
